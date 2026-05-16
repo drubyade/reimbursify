@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Users, Archive, Plus, LayoutGrid, List, Calendar, Building2, ArrowLeft } from "lucide-react";
+import { Users, Archive, Plus, LayoutGrid, List, Calendar, Building2, ArrowLeft, UserPlus, Trash2, X } from "lucide-react";
 
 interface Group {
   id: string;
@@ -121,6 +121,61 @@ export default function AdminGroupsPage() {
       // revert if failed
       setGroups(prev => prev.map(g => g.id === group.id ? group : g));
     }
+  };
+
+  // ── Collaborator Modal State ──
+  const [collabModalGroupId, setCollabModalGroupId] = useState<string | null>(null);
+  const [collabList, setCollabList] = useState<Array<{ id: string; user: { id: string; name: string; email: string; role: string } }>>([]); 
+  const [collabEmail, setCollabEmail] = useState("");
+  const [collabLoading, setCollabLoading] = useState(false);
+  const [collabError, setCollabError] = useState<string | null>(null);
+
+  const openCollabModal = async (groupId: string) => {
+    setCollabModalGroupId(groupId);
+    setCollabError(null);
+    setCollabEmail("");
+    setCollabLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/collaborators`);
+      if (res.ok) {
+        const data = await res.json();
+        setCollabList(data.collaborators || []);
+      }
+    } catch (err) { console.error(err); }
+    finally { setCollabLoading(false); }
+  };
+
+  const addCollaborator = async () => {
+    if (!collabEmail.trim() || !collabModalGroupId) return;
+    setCollabError(null);
+    try {
+      const res = await fetch(`/api/groups/${collabModalGroupId}/collaborators`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: collabEmail.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCollabList((prev) => [data.collaborator, ...prev]);
+        setCollabEmail("");
+      } else {
+        setCollabError(data.error || "Failed to add collaborator");
+      }
+    } catch (err) {
+      setCollabError("Network error");
+    }
+  };
+
+  const removeCollaborator = async (userId: string) => {
+    if (!collabModalGroupId) return;
+    try {
+      await fetch(`/api/groups/${collabModalGroupId}/collaborators`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      setCollabList((prev) => prev.filter((c) => c.user.id !== userId));
+    } catch (err) { console.error(err); }
   };
 
   const containerBgClass = showArchived ? "bg-[#81988d]" : "bg-gray-50/50";
@@ -336,6 +391,13 @@ export default function AdminGroupsPage() {
                             <Archive size={12} />
                             {group.isArchived ? "Unarchive" : "Archive"}
                           </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openCollabModal(group.id); }}
+                            className="px-2.5 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 shrink-0"
+                          >
+                            <UserPlus size={12} />
+                            Collaborators
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -391,6 +453,13 @@ export default function AdminGroupsPage() {
                         >
                           <Archive size={14} />
                           {group.isArchived ? "Unarchive" : "Archive"}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openCollabModal(group.id); }}
+                          className="px-4 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                        >
+                          <UserPlus size={14} />
+                          Collaborators
                         </button>
                       </div>
                     </div>
@@ -474,6 +543,105 @@ export default function AdminGroupsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Collaborator Modal */}
+      {collabModalGroupId && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: "white",
+            padding: "2rem",
+            borderRadius: "1.5rem",
+            width: "100%",
+            maxWidth: "480px",
+            maxHeight: "80vh",
+            overflow: "auto",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+          }} className="animate-fade-in-up">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <UserPlus size={20} />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Group Collaborators</h2>
+              </div>
+              <button onClick={() => setCollabModalGroupId(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Add Collaborator */}
+            <div className="flex gap-2 mb-4">
+              <input
+                type="email"
+                value={collabEmail}
+                onChange={(e) => { setCollabEmail(e.target.value); setCollabError(null); }}
+                placeholder="Enter user email..."
+                className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all outline-none text-sm"
+                onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
+              />
+              <button
+                onClick={addCollaborator}
+                disabled={!collabEmail.trim()}
+                className="px-4 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md"
+              >
+                Add
+              </button>
+            </div>
+            {collabError && (
+              <p className="text-red-600 text-xs font-medium mb-3 bg-red-50 p-2 rounded-lg border border-red-100">{collabError}</p>
+            )}
+
+            {/* Collaborator List */}
+            {collabLoading ? (
+              <p className="text-center text-gray-400 py-8 text-sm">Loading...</p>
+            ) : collabList.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-400 text-sm">No collaborators yet.</p>
+                <p className="text-gray-300 text-xs mt-1">Add users by email to assign them to signature fields.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {collabList.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                        {(c.user.name || c.user.email).charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{c.user.name || "Unnamed"}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs text-gray-500 truncate">{c.user.email}</p>
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                            c.user.role === "ADMINISTRATOR" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                          }`}>
+                            {c.user.role === "ADMINISTRATOR" ? "Admin" : "Submitter"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeCollaborator(c.user.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                      title="Remove collaborator"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

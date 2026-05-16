@@ -28,7 +28,7 @@ export const AdminApprovalPanel: React.FC = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [expenses, setExpenses] = useState<Record<string, Expense[]>>({});
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "pending" | "reviewed">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "reviewed" | "needs_attestation">("all");
   const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [signatureStatuses, setSignatureStatuses] = useState<Record<string, Record<string, boolean>>>({});
@@ -44,17 +44,26 @@ export const AdminApprovalPanel: React.FC = () => {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const url = new URL("/api/submissions", window.location.href);
-      if (filter === "pending") {
-        url.searchParams.set("status", "SUBMITTED");
-      } else if (filter === "reviewed") {
-        url.searchParams.set("status", "REVIEWED");
-      }
 
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const data = await res.json();
-        setSubmissions(data.submissions || []);
+      if (filter === "needs_attestation") {
+        const res = await fetch("/api/submissions?needsAttestation=true");
+        if (res.ok) {
+          const data = await res.json();
+          setSubmissions(data.submissions || []);
+        }
+      } else {
+        const url = new URL("/api/submissions", window.location.href);
+        if (filter === "pending") {
+          url.searchParams.set("status", "SUBMITTED");
+        } else if (filter === "reviewed") {
+          url.searchParams.set("status", "REVIEWED");
+        }
+
+        const res = await fetch(url.toString());
+        if (res.ok) {
+          const data = await res.json();
+          setSubmissions(data.submissions || []);
+        }
       }
     } catch (error) {
       console.error("Error fetching submissions:", error);
@@ -222,7 +231,8 @@ export const AdminApprovalPanel: React.FC = () => {
                 {[
                   { id: "all", label: "All", icon: ListFilter },
                   { id: "pending", label: "Submitted", icon: Send },
-                  { id: "reviewed", label: "Reviewed", icon: CheckCircle }
+                  { id: "reviewed", label: "Reviewed", icon: CheckCircle },
+                  { id: "needs_attestation", label: "Needs My Attestation", icon: AlertCircle }
                 ].map(f => {
                   const Icon = f.icon;
                   return (

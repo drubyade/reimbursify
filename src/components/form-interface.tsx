@@ -1086,20 +1086,49 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
       case "other_expenses_table":
         return renderOtherExpensesTable(field);
       case "signature_authority":
-        let isApproved = false;
+        // Check attestation status
+        let attestation: any = null;
+        if (submissionData?.attestations) {
+          attestation = submissionData.attestations.find((a: any) => a.fieldId === field.id);
+        }
+        // Legacy: check old signatures JSON too
+        let isApproved = !!attestation;
         let isRejected = false;
-        if (submissionData && submissionData.signatures) {
+        if (!attestation && submissionData?.signatures) {
           try {
             const sigs = JSON.parse(submissionData.signatures);
             if (sigs[field.id] === true) isApproved = true;
             if (sigs[field.id] === false) isRejected = true;
           } catch(e) {}
         }
+
+        const isMySignature = field.collaboratorId && session?.user?.id === field.collaboratorId;
+        const canAttest = isMySignature && !isApproved && submissionData?.id;
+
+        const handleAttest = async () => {
+          if (!submissionData?.id || !field.id) return;
+          try {
+            const res = await fetch(`/api/submissions/${submissionData.id}/attest`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ fieldId: field.id }),
+            });
+            if (res.ok) {
+              window.location.reload();
+            } else {
+              const data = await res.json();
+              alert(data.error || "Failed to attest");
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        };
+
         return (
           <div style={{ marginTop: "1.5rem", display: "inline-flex", flexDirection: "column", alignItems: "center", minWidth: "220px", border: "1px dashed #cbd5e1", padding: "1.5rem 1rem 0.5rem", borderRadius: "0.5rem", position: "relative" }}>
             {isApproved && (
               <div style={{ position: "absolute", top: "-10px", right: "-10px", transform: "rotate(-10deg)", border: "3px solid #16a34a", color: "#16a34a", padding: "0.25rem 0.75rem", borderRadius: "0.25rem", fontWeight: "800", fontSize: "0.9rem", letterSpacing: "1px", textTransform: "uppercase", background: "rgba(255,255,255,0.9)" }}>
-                APPROVED
+                ATTESTED
               </div>
             )}
             {isRejected && (
@@ -1109,12 +1138,38 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
             )}
             <div style={{ height: "40px", borderBottom: "1px solid #1e293b", width: "100%", marginBottom: "0.5rem" }}></div>
             <div style={{ fontWeight: "600", fontSize: "0.9rem", color: "#334155" }}>
-              Signature of {field.label || "Authority"}
+              Signature of {field.collaboratorName || field.label || "Authority"}
             </div>
-            {isApproved && (
-               <div style={{ fontSize: "0.7rem", color: "#16a34a", marginTop: "0.25rem", fontWeight: "500" }}>
-                 Digitally verified by Approver
-               </div>
+            {attestation && (
+              <div style={{ fontSize: "0.7rem", color: "#16a34a", marginTop: "0.25rem", fontWeight: "500" }}>
+                ✅ Attested by {attestation.collaborator?.name || attestation.collaborator?.email} on {new Date(attestation.attestedAt).toLocaleDateString()}
+              </div>
+            )}
+            {!isApproved && !canAttest && field.collaboratorName && (
+              <div style={{ fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.25rem", fontWeight: "500", fontStyle: "italic" }}>
+                ⏳ Awaiting attestation from {field.collaboratorName}
+              </div>
+            )}
+            {canAttest && (
+              <button
+                onClick={handleAttest}
+                style={{
+                  marginTop: "0.5rem",
+                  padding: "0.4rem 1rem",
+                  background: "#7c3aed",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "0.5rem",
+                  fontWeight: "700",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = "#6d28d9")}
+                onMouseOut={(e) => (e.currentTarget.style.background = "#7c3aed")}
+              >
+                ✍️ Attest This Signature
+              </button>
             )}
           </div>
         );

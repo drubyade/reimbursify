@@ -32,6 +32,7 @@ model Group {
   formTemplates    FormTemplate[]
   submissions      Submission[]
   messages         DirectMessage[]
+  collaborators    GroupCollaborator[]
 }
 
 model GroupMembership {
@@ -127,6 +128,8 @@ model User {
   groupMemberships      GroupMembership[]
   sentMessages          DirectMessage[] @relation("sender")
   receivedMessages      DirectMessage[] @relation("receiver")
+  collaborations        GroupCollaborator[]
+  attestations          SignatureAttestation[] @relation("attestor")
 }
 
 model Account {
@@ -315,10 +318,42 @@ model Submission {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
+  // Relations
+  attestations     SignatureAttestation[]
+  
   @@index([templateId])
   @@index([tripId])
   @@index([userId])
   @@index([groupId])
+}
+
+// ========== COLLABORATORS ==========
+model GroupCollaborator {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedAt   DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+// ========== SIGNATURE ATTESTATIONS ==========
+model SignatureAttestation {
+  id             String     @id @default(cuid())
+  submissionId   String
+  submission     Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  fieldId        String     // The signature_authority field ID from the form template
+  collaboratorId String     // The user who attested
+  collaborator   User       @relation("attestor", fields: [collaboratorId], references: [id], onDelete: Cascade)
+  attestedAt     DateTime   @default(now())
+
+  @@unique([submissionId, fieldId, collaboratorId])
+  @@index([submissionId])
+  @@index([collaboratorId])
 }
 
 // ========== CURRENCY EXCHANGE RATES (Cached) ==========

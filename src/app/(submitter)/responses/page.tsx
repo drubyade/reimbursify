@@ -20,7 +20,8 @@ export default function MyResponsesPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedIdState] = useState<string | null>(null);
   const [editingDraftId, setEditingDraftIdState] = useState<string | null>(null);
-  const [filter, setFilterState] = useState<"all" | "DRAFT" | "SUBMITTED" | "SETTLED">("all");
+  const [filter, setFilterState] = useState<"all" | "DRAFT" | "SUBMITTED" | "SETTLED" | "needs_attestation">("all");
+  const [attestationSubs, setAttestationSubs] = useState<Submission[]>([]);
 
   useEffect(() => {
     const savedFilter = localStorage.getItem("reimbursify_responses_filter");
@@ -33,9 +34,12 @@ export default function MyResponsesPage() {
     fetchSubmissions();
   }, []);
 
-  const setFilter = (val: "all" | "DRAFT" | "SUBMITTED" | "SETTLED") => {
+  const setFilter = (val: "all" | "DRAFT" | "SUBMITTED" | "SETTLED" | "needs_attestation") => {
     setFilterState(val);
     localStorage.setItem("reimbursify_responses_filter", val);
+    if (val === "needs_attestation") {
+      fetchAttestationSubmissions();
+    }
   };
 
   const setExpandedId = (val: string | null) => {
@@ -64,6 +68,18 @@ export default function MyResponsesPage() {
     }
   };
 
+  const fetchAttestationSubmissions = async () => {
+    try {
+      const res = await fetch("/api/submissions?needsAttestation=true");
+      if (res.ok) {
+        const data = await res.json();
+        setAttestationSubs(data.submissions || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch attestation submissions:", err);
+    }
+  };
+
   const handleSettleForm = async (id: string) => {
     if (!confirm("Are you sure you want to mark this form as settled?")) return;
     try {
@@ -89,7 +105,7 @@ export default function MyResponsesPage() {
     }
   };
 
-  const filtered = submissions.filter(s => filter === "all" || s.status === filter);
+  const filtered = filter === "needs_attestation" ? attestationSubs : submissions.filter(s => filter === "all" || s.status === filter);
 
   const parseFormData = (fd: string | undefined) => {
     if (!fd) return null;
@@ -173,6 +189,7 @@ export default function MyResponsesPage() {
               { key: "DRAFT", label: "Drafts" },
               { key: "SUBMITTED", label: "Submitted" },
               { key: "SETTLED", label: "Settled" },
+              { key: "needs_attestation", label: "Needs My Attestation" },
             ].map(tab => (
               <button
                 key={tab.key}

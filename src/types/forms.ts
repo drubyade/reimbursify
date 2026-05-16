@@ -65,6 +65,10 @@ export interface FormField {
   // Advanced Form Layout
   templateText?: string;
   
+  // Collaborator (for signature_authority fields)
+  collaboratorId?: string;
+  collaboratorName?: string;
+  
   // Scale/Rating configuration
   minLabel?: string;
   maxLabel?: string;

@@ -11,6 +11,7 @@ interface FormBuilderProps {
   loading?: boolean;
   onBack?: () => void;
   formId?: string;
+  groupId?: string;
 }
 
 export function FormBuilder({
@@ -20,6 +21,7 @@ export function FormBuilder({
   loading = false,
   onBack,
   formId,
+  groupId,
 }: FormBuilderProps) {
   const [sections, setSections] = useState<FormSection[]>(() => {
     if (typeof window !== "undefined" && formId) {
@@ -52,6 +54,18 @@ export function FormBuilder({
   });
   const [savingForm, setSavingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Collaborators for signature_authority fields
+  const [collaborators, setCollaborators] = useState<Array<{ id: string; user: { id: string; name: string; email: string; role: string } }>>([]); 
+
+  useEffect(() => {
+    if (groupId) {
+      fetch(`/api/groups/${groupId}/collaborators`)
+        .then((r) => r.json())
+        .then((data) => setCollaborators(data.collaborators || []))
+        .catch(console.error);
+    }
+  }, [groupId]);
 
   const [historyState, setHistoryState] = useState({
     stack: [sections],
@@ -521,6 +535,7 @@ export function FormBuilder({
                         currentSection.fields[currentSection.fields.length - 1]
                           ?.id !== field.id
                       }
+                      collaborators={collaborators}
                     />
                   ))
                 )}
@@ -574,6 +589,7 @@ interface FieldEditorProps {
   onMoveDown: () => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  collaborators?: Array<{ id: string; user: { id: string; name: string; email: string; role: string } }>;
 }
 
 function FieldEditor({
@@ -588,6 +604,7 @@ function FieldEditor({
   onMoveDown,
   canMoveUp,
   canMoveDown,
+  collaborators = [],
 }: FieldEditorProps) {
   // Use fallback so if NEXT js hot reload hasn't picked up the new types in forms.ts, it doesn't crash the sidebar
   const config = FIELD_CONFIGS[field.type] || {
@@ -707,6 +724,48 @@ function FieldEditor({
                 placeholder="Enter text here. Click the button above to insert a fill-in blank."
                 style={{ width: "100%", minHeight: "100px", padding: "0.5rem", borderRadius: "0.4rem", border: "1px solid #e5e7eb", marginTop: "0.5rem" }}
               />
+            </div>
+          )}
+
+          {field.type === "signature_authority" && (
+            <div className={styles.settingGroup}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>Assign Collaborator</label>
+              {collaborators.length === 0 ? (
+                <p style={{ fontSize: "0.8rem", color: "#9ca3af", fontStyle: "italic" }}>
+                  No collaborators added to this group yet. Add collaborators from Manage Groups.
+                </p>
+              ) : (
+                <select
+                  value={field.collaboratorId || ""}
+                  onChange={(e) => {
+                    const selected = collaborators.find((c) => c.user.id === e.target.value);
+                    onUpdate({
+                      collaboratorId: e.target.value || undefined,
+                      collaboratorName: selected?.user.name || selected?.user.email || undefined,
+                    });
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    borderRadius: "0.4rem",
+                    border: "1px solid #e5e7eb",
+                    fontSize: "0.85rem",
+                    backgroundColor: "#f9fafb",
+                  }}
+                >
+                  <option value="">— Select Collaborator —</option>
+                  {collaborators.map((c) => (
+                    <option key={c.user.id} value={c.user.id}>
+                      {c.user.name || c.user.email} ({c.user.role === "ADMINISTRATOR" ? "Admin" : "Submitter"})
+                    </option>
+                  ))}
+                </select>
+              )}
+              {field.collaboratorName && (
+                <p style={{ fontSize: "0.75rem", color: "#16a34a", marginTop: "0.3rem", fontWeight: 500 }}>
+                  ✓ Assigned to: {field.collaboratorName}
+                </p>
+              )}
             </div>
           )}
 

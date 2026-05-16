@@ -32,6 +32,11 @@ export async function GET(req: NextRequest, { params }: Params) {
             },
           },
         },
+        attestations: {
+          include: {
+            collaborator: { select: { id: true, name: true, email: true } },
+          },
+        },
       },
     });
 
@@ -54,7 +59,12 @@ export async function GET(req: NextRequest, { params }: Params) {
     const isOwner = submission.userId === session.user.id;
     const isAdmin = user.role === "ADMINISTRATOR";
 
-    if (!isOwner && !isAdmin) {
+    // Check if user is a collaborator for this group
+    const isCollaborator = await prisma.groupCollaborator.findUnique({
+      where: { groupId_userId: { groupId: submission.groupId, userId: session.user.id } },
+    });
+
+    if (!isOwner && !isAdmin && !isCollaborator) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

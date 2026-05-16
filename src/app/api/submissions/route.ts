@@ -26,6 +26,74 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const tripId = searchParams.get("tripId");
     const templateId = searchParams.get("templateId");
+    const needsAttestation = searchParams.get("needsAttestation") === "true";
+
+    // ─── NEEDS ATTESTATION MODE ──────────────────────────────────────
+    if (needsAttestation) {
+      // Find all groups where this user is a collaborator
+      const collaborations = await prisma.groupCollaborator.findMany({
+        where: { userId: session.user.id },
+        select: { groupId: true },
+      });
+
+      if (collaborations.length === 0) {
+        return NextResponse.json({ submissions: [], total: 0 });
+      }
+
+      const collabGroupIds = collaborations.map((c) => c.groupId);
+
+      // Get all non-draft submissions in those groups
+      const allSubs = await prisma.submission.findMany({
+        where: {
+          groupId: { in: collabGroupIds },
+          status: { in: ["SUBMITTED", "REVIEWED"] },
+        },
+        include: {
+          template: { select: { id: true, title: true, version: true, templateSchema: true } },
+          user: { select: { id: true, email: true, name: true } },
+          trip: { select: { id: true, title: true } },
+          attestations: { select: { fieldId: true, collaboratorId: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // Filter to submissions where the user has unattested signature fields assigned to them
+      const needsAttestList = allSubs.filter((sub) => {
+        let schema: any;
+        try {
+          schema = typeof sub.template.templateSchema === "string"
+            ? JSON.parse(sub.template.templateSchema)
+            : sub.template.templateSchema;
+        } catch {
+          return false;
+        }
+
+        const sigFields: any[] = [];
+        for (const section of (schema.sections || [])) {
+          for (const field of (section.fields || [])) {
+            if (field.type === "signature_authority" && field.collaboratorId === session.user!.id) {
+              sigFields.push(field);
+            }
+          }
+        }
+
+        if (sigFields.length === 0) return false;
+
+        // Check if any of those fields are not yet attested by this user
+        const attestedFieldIds = new Set(
+          sub.attestations
+            .filter((a) => a.collaboratorId === session.user!.id)
+            .map((a) => a.fieldId)
+        );
+
+        return sigFields.some((f) => !attestedFieldIds.has(f.id));
+      });
+
+      return NextResponse.json({
+        submissions: needsAttestList.map((s) => ({ ...s, status: s.status })),
+        total: needsAttestList.length,
+      });
+    }
 
     const groupIds = user.groupMemberships.map(m => m.groupId);
     const whereClause: any = {

@@ -283,6 +283,7 @@ function FormManagementContent() {
             onBack={() => setEditingFormId(null)}
             loading={false}
             formId={editingFormId || "new"}
+            groupId={selectedGroupId || undefined}
           />
         </div>
       </div>
