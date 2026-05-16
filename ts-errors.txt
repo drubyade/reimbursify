@@ -1,0 +1,119 @@
+__tests__/workflows.test.ts(21,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(27,3): error TS2304: Cannot find name 'beforeAll'.
+__tests__/workflows.test.ts(29,36): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+__tests__/workflows.test.ts(43,3): error TS2304: Cannot find name 'beforeEach'.
+__tests__/workflows.test.ts(54,3): error TS2304: Cannot find name 'afterEach'.
+__tests__/workflows.test.ts(59,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(60,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(65,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(66,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(67,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(70,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(73,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(74,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(75,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(76,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(79,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(90,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(91,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(94,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(103,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(111,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(115,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(116,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(121,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(122,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(123,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(126,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(134,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(135,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(136,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(139,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(145,11): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<SubmissionCreateInput, SubmissionUncheckedCreateInput> & SubmissionUncheckedCreateInput'.
+__tests__/workflows.test.ts(156,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(164,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(175,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(176,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(179,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(186,11): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<SubmissionCreateInput, SubmissionUncheckedCreateInput> & SubmissionUncheckedCreateInput'.
+__tests__/workflows.test.ts(198,11): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<SubmissionCreateInput, SubmissionUncheckedCreateInput> & SubmissionUncheckedCreateInput'.
+__tests__/workflows.test.ts(207,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(211,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(212,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(215,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(223,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(231,11): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<SubmissionCreateInput, SubmissionUncheckedCreateInput> & SubmissionUncheckedCreateInput'.
+__tests__/workflows.test.ts(236,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(247,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(258,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(258,45): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(259,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(259,48): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(263,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(264,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(270,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(271,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(272,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(275,5): error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/workflows.test.ts(278,7): error TS2304: Cannot find name 'expect'.
+__tests__/workflows.test.ts(282,3): error TS2304: Cannot find name 'afterAll'.
+prisma/seed.ts(10,34): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(30,7): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'UserWhereInput'.
+prisma/seed.ts(41,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+prisma/seed.ts(58,7): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'UserWhereInput'.
+prisma/seed.ts(69,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+prisma/seed.ts(112,7): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'FormTemplateWhereInput'.
+prisma/seed.ts(121,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<FormTemplateCreateInput, FormTemplateUncheckedCreateInput> & FormTemplateUncheckedCreateInput'.
+scripts/test-workflows.ts(25,36): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/(submitter)/messages/page.tsx(287,18): error TS2304: Cannot find name 'MessageSquare'.
+src/app/api/direct-messages/route.ts(2,10): error TS2459: Module '"@/lib/db"' declares 'db' locally, but it is not exported.
+src/app/api/forms-builder/[id]/route.ts(28,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'FormTemplateWhereInput'.
+src/app/api/forms-builder/[id]/route.ts(28,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms-builder/[id]/route.ts(74,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'FormTemplateWhereInput'.
+src/app/api/forms-builder/[id]/route.ts(74,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms-builder/[id]/route.ts(128,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'FormTemplateWhereInput'.
+src/app/api/forms-builder/[id]/route.ts(128,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms-builder/route.ts(26,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'FormTemplateWhereInput'.
+src/app/api/forms-builder/route.ts(26,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms-builder/route.ts(88,9): error TS2353: Object literal may only specify known properties, and 'instituteId_title' does not exist in type 'FormTemplateWhereUniqueInput'.
+src/app/api/forms-builder/route.ts(89,29): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms-builder/route.ts(108,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<FormTemplateCreateInput, FormTemplateUncheckedCreateInput> & FormTemplateUncheckedCreateInput'.
+src/app/api/forms-builder/route.ts(108,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms/[id]/route.ts(41,14): error TS2339: Property 'instituteId' does not exist on type '{ id: string; title: string; createdAt: Date; updatedAt: Date; description: string | null; templateSchema: string; isActive: boolean; version: number; groupId: string; createdById: string; }'.
+src/app/api/forms/[id]/route.ts(41,35): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms/[id]/route.ts(87,14): error TS2339: Property 'instituteId' does not exist on type '{ id: string; title: string; createdAt: Date; updatedAt: Date; description: string | null; templateSchema: string; isActive: boolean; version: number; groupId: string; createdById: string; }'.
+src/app/api/forms/[id]/route.ts(87,35): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms/[id]/route.ts(160,14): error TS2339: Property 'instituteId' does not exist on type '{ id: string; title: string; createdAt: Date; updatedAt: Date; description: string | null; templateSchema: string; isActive: boolean; version: number; groupId: string; createdById: string; }'.
+src/app/api/forms/[id]/route.ts(160,35): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms/route.ts(31,25): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/forms/route.ts(45,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'FormTemplateSelect<DefaultArgs>'.
+src/app/api/forms/route.ts(119,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<FormTemplateCreateInput, FormTemplateUncheckedCreateInput> & FormTemplateUncheckedCreateInput'.
+src/app/api/forms/route.ts(119,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/groups/join/route.ts(37,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/api/groups/join/route.ts(48,7): error TS2322: Type '{ groupId: string; userId: string | undefined; role: string; }' is not assignable to type '(Without<GroupMembershipCreateInput, GroupMembershipUncheckedCreateInput> & GroupMembershipUncheckedCreateInput) | (Without<...> & GroupMembershipCreateInput)'.
+  Types of property 'userId' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/app/api/groups/route.ts(41,11): error TS2322: Type '{ userId: string | undefined; role: string; }' is not assignable to type '(Without<GroupMembershipCreateWithoutGroupInput, GroupMembershipUncheckedCreateWithoutGroupInput> & GroupMembershipUncheckedCreateWithoutGroupInput) | (Without<...> & GroupMembershipCreateWithoutGroupInput) | GroupMembershipCreateWithoutGroupInput[] | GroupMembershipUncheckedCreateWithoutGroupInput[] | undefined'.
+  Type '{ userId: string | undefined; role: string; }' is not assignable to type '(Without<GroupMembershipCreateWithoutGroupInput, GroupMembershipUncheckedCreateWithoutGroupInput> & GroupMembershipUncheckedCreateWithoutGroupInput) | (Without<...> & GroupMembershipCreateWithoutGroupInput) | GroupMembershipCreateWithoutGroupInput[] | GroupMembershipUncheckedCreateWithoutGroupInput[]'.
+    Type '{ userId: string | undefined; role: string; }' is not assignable to type 'Without<GroupMembershipCreateWithoutGroupInput, GroupMembershipUncheckedCreateWithoutGroupInput> & GroupMembershipUncheckedCreateWithoutGroupInput'.
+      Type '{ userId: string | undefined; role: string; }' is not assignable to type 'GroupMembershipUncheckedCreateWithoutGroupInput'.
+        Types of property 'userId' are incompatible.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/app/api/institutes/route.ts(5,15): error TS2305: Module '"@prisma/client"' has no exported member 'Institute'.
+src/app/api/institutes/route.ts(13,38): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/institutes/route.ts(30,37): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/institutes/route.ts(63,36): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/institutes/route.ts(97,36): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/institutes/route.ts(127,18): error TS2339: Property 'institute' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/submissions/route.ts(19,18): error TS2353: Object literal may only specify known properties, and 'institute' does not exist in type 'UserInclude<DefaultArgs>'.
+src/app/api/submissions/route.ts(121,31): error TS2339: Property 'instituteId' does not exist on type '{ id: string; title: string; createdAt: Date; updatedAt: Date; description: string | null; templateSchema: string; isActive: boolean; version: number; groupId: string; createdById: string; }'.
+src/app/api/submissions/route.ts(121,52): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/app/api/submissions/route.ts(161,9): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<SubmissionCreateInput, SubmissionUncheckedCreateInput> & SubmissionUncheckedCreateInput'.
+src/app/api/submissions/route.ts(161,27): error TS2339: Property 'instituteId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string | null; username: string; email: string; password: string | null; emailVerified: Date | null; image: string | null; ... 8 more ...; userPurpose: string | null; }'.
+src/components/trips-dashboard.tsx(1033,38): error TS2345: Argument of type '{ title: string; amount: string; category: string; expenseType: string; paymentDate: string; currency: string; description: string; metadata: {}; files: never[]; }' is not assignable to parameter of type 'SetStateAction<{ title: string; amount: string; category: string; expenseType: string; paymentDate: string; paymentMethod: string; description: string; currency: string; metadata: Record<string, any>; files: File[]; }>'.
+  Property 'paymentMethod' is missing in type '{ title: string; amount: string; category: string; expenseType: string; paymentDate: string; currency: string; description: string; metadata: {}; files: never[]; }' but required in type '{ title: string; amount: string; category: string; expenseType: string; paymentDate: string; paymentMethod: string; description: string; currency: string; metadata: Record<string, any>; files: File[]; }'.
+src/lib/test-utils.ts(69,7): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<FormTemplateCreateInput, FormTemplateUncheckedCreateInput> & FormTemplateUncheckedCreateInput'.
+src/lib/test-utils.ts(102,7): error TS2353: Object literal may only specify known properties, and 'instituteId' does not exist in type 'Without<SubmissionCreateInput, SubmissionUncheckedCreateInput> & SubmissionUncheckedCreateInput'.

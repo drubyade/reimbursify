@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  
+  /* Light Ocean Blue Theme */
+  /* Primary: Ocean Blue & Light Sky */
+  --primary: #0077b6;
+  --primary-dark: #023e8a;
+  --primary-light: #0096c7;
+  --primary-lighter: #caf0f8;
+  --primary-lightest: #f0f8ff;
+  
+  /* Secondary: Gold accents can stay or optionally be tweaked */
+  --secondary: #d4af37;
+  --secondary-light: #e6c547;
+  --secondary-lighter: #fef3c7;
+  --secondary-lightest: #fef9e7;
+  
+  /* Accent Colors */
+  --accent: #06b6d4;
+  --accent-light: #22d3ee;
+  
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  
+  /* Backgrounds */
+  --bg-primary: #fafbfa;
+  --bg-secondary: #f0f8ff;
+  --bg-tertiary: #fef9e7;
+  --bg-glass: rgba(255, 255, 255, 0.5);
+  
+  /* Borders & Text */
+  --border: #caf0f8;
+  --border-subtle: #f0f8ff;
+  --text-primary: #0f172a;
+  --text-secondary: #0077b6;
+  --text-muted: #64748b;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #0077b6 0%, #0096c7 100%);
+  --gradient-secondary: linear-gradient(135deg, #d4af37 0%, #e6c547 100%);
+  --gradient-accent: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 119, 182, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 119, 182, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 119, 182, 0.2);
+  --shadow-xl: 0 12px 40px rgba(0, 119, 182, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* Scrollbar styling - Hidden per request */
+::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
+}
