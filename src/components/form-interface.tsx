@@ -1228,18 +1228,20 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
             <div className="px-6 pb-6 md:px-8 md:pb-8 pt-0 space-y-6">
               {section.fields?.map((field: any) => (
                 <div key={field.id}>
-                  <>
-                    <label className="block text-[0.9rem] font-semibold text-slate-700 mb-1.5">
-                      {field.label}
-                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                    </label>
-                    {field.description && (
-                      <p className="text-[0.82rem] text-gray-500 m-0 mb-1.5">{field.description}</p>
-                    )}
-                    {field.helpText && (
-                      <p className="text-[0.78rem] text-gray-400 m-0 mb-1.5 italic">{field.helpText}</p>
-                    )}
-                  </>
+                  {field.type !== "subheading" && field.type !== "text_with_fill_ins" && (
+                    <>
+                      <label className="block text-[0.9rem] font-semibold text-slate-700 mb-1.5">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      {field.description && (
+                        <p className="text-[0.82rem] text-gray-500 m-0 mb-1.5">{field.description}</p>
+                      )}
+                      {field.helpText && (
+                        <p className="text-[0.78rem] text-gray-400 m-0 mb-1.5 italic">{field.helpText}</p>
+                      )}
+                    </>
+                  )}
                   {renderField(field)}
                 </div>
               ))}

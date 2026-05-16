@@ -309,7 +309,6 @@ export default function MyResponsesPage() {
                                   const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
                                   return (
                                     <div key={field.id} className="col-span-1 md:col-span-2 bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm" style={{ gridColumn: "1 / -1" }}>
-                                      <div className="text-xs font-bold text-gray-500 uppercase mb-2">{field.label}</div>
                                       <div className="text-base text-gray-800 leading-relaxed">
                                         {parts.map((part: string, i: number) => (
                                           <span key={i}>

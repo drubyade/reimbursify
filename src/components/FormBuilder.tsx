@@ -607,20 +607,24 @@ function FieldEditor({
       <div className={styles.fieldHeader} onClick={onToggleExpand}>
         <div className={styles.fieldInfo}>
           <span>{config.icon}</span>
-          <input
-            type="text"
-            value={field.label}
-            onChange={(e) => onUpdate({ label: e.target.value })}
-            className={styles.fieldLabel}
-            placeholder="Field label"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect();
-              if (!isExpanded) {
-                onToggleExpand();
-              }
-            }}
-          />
+          {field.type === "text_with_fill_ins" ? (
+            <span className={styles.fieldLabel} style={{ opacity: 0.7, padding: "0.25rem 0" }}>Fill in the blanks</span>
+          ) : (
+            <input
+              type="text"
+              value={field.label}
+              onChange={(e) => onUpdate({ label: e.target.value })}
+              className={styles.fieldLabel}
+              placeholder="Field label"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+                if (!isExpanded) {
+                  onToggleExpand();
+                }
+              }}
+            />
+          )}
         </div>
         <div className={styles.fieldActions}>
           <button
