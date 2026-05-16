@@ -41,6 +41,14 @@ export default function SubmitterLayout({
     }
   }, [status, session, router]);
 
+  // Purge expired cache (>15 days) and flush offline queue on startup
+  useEffect(() => {
+    import("@/lib/offline-db").then(({ purgeExpired, flushSyncQueue }) => {
+      purgeExpired().catch(() => {});
+      if (navigator.onLine) flushSyncQueue().catch(() => {});
+    });
+  }, []);
+
   if (status === "loading") {
     return <div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>;
   }

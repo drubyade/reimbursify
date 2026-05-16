@@ -15,6 +15,7 @@ import {
   getSyncQueue,
   flushSyncQueue
 } from "@/lib/offline-db";
+import { useDataSync } from "@/hooks/useDataSync";
 import { Plus, ArrowRight, Plane, Calendar, CreditCard, PieChart, Star, Archive, Trash2, ChevronRight, Eye, LayoutGrid, List, Briefcase, Receipt } from "lucide-react";
 
 interface Trip {
@@ -46,8 +47,47 @@ interface Expense {
 
 export const TripsDashboard = forwardRef((_, ref) => {
   const { data: session } = useSession();
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const fetchTripsData = async () => {
+    const syncQueue = await getSyncQueue();
+    const pendingTripIds = syncQueue.map(item => {
+      const match = item.url.match(/\/api\/trips\/([^/]+)/);
+      return match ? match[1] : null;
+    }).filter(Boolean);
+
+    const allRes = await fetch("/api/trips?archived=true", { headers: { "Cache-Control": "no-cache" } });
+    if (!allRes.ok) throw new Error("Failed to fetch trips");
+    const allData = await allRes.json();
+    const serverTrips = allData.trips || [];
+    
+    const localTrips = await getCachedTrips();
+    const merged = serverTrips.map((serverTrip: Trip) => {
+      const local = localTrips.find((t: Trip) => t.id === serverTrip.id);
+      if (local) {
+        if (pendingTripIds.includes(serverTrip.id)) return local;
+        if (local._cachedAt && Date.now() - local._cachedAt < 5000) return local;
+      }
+      return serverTrip;
+    });
+    flushSyncQueue().catch(() => {});
+    return merged;
+  };
+
+  const { data: syncTrips, loading: loadingTrips, mutate: mutateTrips, revalidate: fetchTrips } = useDataSync<Trip[]>({
+    fetcher: session?.user?.id ? fetchTripsData : undefined,
+    cacheFetcher: async () => {
+      const cached = await getCachedTrips();
+      return cached.length > 0 ? cached as Trip[] : null;
+    },
+    cacheUpdater: async (data) => { await cacheTrips(data); },
+  });
+  const trips = syncTrips ?? [];
+  const setTrips = (updater: Trip[] | ((prev: Trip[]) => Trip[])) => {
+    if (typeof updater === 'function') mutateTrips(updater(trips), true);
+    else mutateTrips(updater, true);
+  };
+  const loading = loadingTrips;
+
   const [showNewTripForm, setShowNewTripForm] = useState(false);
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
@@ -100,8 +140,33 @@ export const TripsDashboard = forwardRef((_, ref) => {
   };
 
   const tripDetails = useMemo(() => trips.find((t) => t.id === selectedTripId) || null, [trips, selectedTripId]);
-  const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
-  const [loadingExpenses, setLoadingExpenses] = useState(false);
+
+  const fetchTripExpensesData = async () => {
+    if (!selectedTripId) return [];
+    const res = await fetch(`/api/trips/${selectedTripId}/expenses`);
+    if (!res.ok) throw new Error("Failed to fetch expenses");
+    const data = await res.json();
+    return (data.expenses || []).map((e: any) => ({ ...e, tripId: selectedTripId }));
+  };
+
+  const { data: syncTripExpenses, loading: loadingExpensesData, mutate: mutateTripExpenses, revalidate: fetchTripExpensesTrigger } = useDataSync<Expense[]>({
+    fetcher: selectedTripId ? fetchTripExpensesData : undefined,
+    cacheFetcher: selectedTripId ? async () => {
+      const cached = await getCachedExpensesByTrip(selectedTripId);
+      return cached.length > 0 ? cached as Expense[] : null;
+    } : undefined,
+    cacheUpdater: async (data) => { await cacheExpenses(data); },
+  });
+  const tripExpenses = syncTripExpenses ?? [];
+  const setTripExpenses = (updater: Expense[] | ((prev: Expense[]) => Expense[])) => {
+    if (typeof updater === 'function') mutateTripExpenses(updater(tripExpenses), true);
+    else mutateTripExpenses(updater, true);
+  };
+  const loadingExpenses = loadingExpensesData;
+  const fetchTripExpenses = async (tripId: string) => {
+    // handled automatically by useDataSync when selectedTripId changes
+    fetchTripExpensesTrigger();
+  };
   const [paymentCards, setPaymentCards] = useState<any[]>([]);
 
   const [tripForm, setTripForm] = useState({
@@ -204,61 +269,6 @@ export const TripsDashboard = forwardRef((_, ref) => {
     };
   }, [session?.user?.id]);
 
-  const fetchTrips = async () => {
-    setLoading(true);
-
-    // ── Serve cached data immediately (offline-first) ──────────────────────
-    try {
-      const cached = await getCachedTrips();
-      if (cached.length > 0) {
-        setTrips(cached);
-        setLoading(false); // show cached data right away
-      }
-    } catch (_) {}
-
-    // ── Then hit the network and update both UI + cache ────────────────────
-    try {
-      // Get pending queue BEFORE flushing so we know what's in-flight
-      const syncQueue = await getSyncQueue();
-      const pendingTripIds = syncQueue.map(item => {
-        const match = item.url.match(/\/api\/trips\/([^/]+)/);
-        return match ? match[1] : null;
-      }).filter(Boolean);
-
-      const allRes = await fetch("/api/trips?archived=true", { headers: { "Cache-Control": "no-cache" } });
-      if (allRes.ok) {
-        const allData = await allRes.json();
-        const serverTrips = allData.trips || [];
-        
-        const localTrips = await getCachedTrips();
-        const merged = serverTrips.map((serverTrip: Trip) => {
-          const local = localTrips.find((t: Trip) => t.id === serverTrip.id);
-          if (local) {
-            // Prefer local if it's currently in the sync queue
-            if (pendingTripIds.includes(serverTrip.id)) {
-               return local;
-            }
-            // Prefer local if it was cached extremely recently (under 5 seconds ago)
-            if (local._cachedAt && Date.now() - local._cachedAt < 5000) {
-              return local;
-            }
-          }
-          return serverTrip;
-        });
-
-        setTrips(merged);
-        await cacheTrips(merged).catch(() => {});
-      }
-
-      // Flush queue AFTER applying logic
-      flushSyncQueue().catch(() => {});
-    } catch (error) {
-      console.error("Error fetching trips (using cache):", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const toggleFavorite = async (e: React.MouseEvent, trip: Trip) => {
     e.stopPropagation();
     try {
@@ -317,40 +327,13 @@ export const TripsDashboard = forwardRef((_, ref) => {
     }
     if (!confirm(`Are you sure you want to delete "${trip.title}"?`)) return;
     try {
-      setTrips(prev => prev.filter(t => t.id !== trip.id));
+      setTrips((prev: Trip[]) => prev.filter(t => t.id !== trip.id));
       await fetch(`/api/trips/${trip.id}`, { method: "DELETE" });
     } catch (err) {
       console.error(err);
     }
   };
 
-  const fetchTripExpenses = async (tripId: string) => {
-    setLoadingExpenses(true);
-
-    // ── Serve cached expenses immediately ─────────────────────────────────
-    try {
-      const cached = await getCachedExpensesByTrip(tripId);
-      if (cached.length > 0) {
-        setTripExpenses(cached as Expense[]);
-        setLoadingExpenses(false);
-      }
-    } catch (_) {}
-
-    // ── Then refresh from network ──────────────────────────────────────────
-    try {
-      const res = await fetch(`/api/trips/${tripId}/expenses`);
-      if (res.ok) {
-        const data = await res.json();
-        const fresh = (data.expenses || []).map((e: any) => ({ ...e, tripId }));
-        setTripExpenses(fresh);
-        await cacheExpenses(fresh).catch(() => {});
-      }
-    } catch (error) {
-      console.error("Error fetching expenses (using cache):", error);
-    } finally {
-      setLoadingExpenses(false);
-    }
-  };
 
   const handleCreateTrip = async (e: React.FormEvent) => {
     e.preventDefault();

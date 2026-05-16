@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Users, Archive, Plus, LayoutGrid, List, Calendar, Building2, ArrowLeft } from "lucide-react";
 import { cacheGroups, getCachedGroups, cacheSingleGroup, addToSyncQueue, flushSyncQueue, getSyncQueue } from "@/lib/offline-db";
+import { useDataSync } from "@/hooks/useDataSync";
 
 interface Group {
   id: string;
@@ -18,9 +19,46 @@ interface Group {
 }
 
 export function GroupListView({ baseRoute = "/groups", apiQuery = "" }: { baseRoute?: string, apiQuery?: string }) {
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+  const fetchGroupsData = async () => {
+    const syncQueue = await getSyncQueue();
+    const pendingGroupIds = syncQueue.map(item => {
+      const match = item.url.match(/\/api\/groups\/([^/]+)\/preferences/);
+      return match ? match[1] : null;
+    }).filter(Boolean);
+
+    const res = await fetch(`/api/groups${apiQuery}`, { headers: { "Cache-Control": "no-cache" } });
+    if (!res.ok) throw new Error("Failed to fetch groups");
+    const data = await res.json();
+    const serverGroups = data.groups || [];
+
+    const localGroups = await getCachedGroups();
+    const mergedGroups = serverGroups.map((serverGroup: Group) => {
+      const local = localGroups.find((g: Group) => g.groupId === serverGroup.groupId);
+      if (local) {
+        if (pendingGroupIds.includes(serverGroup.groupId)) return local;
+        if (local._cachedAt && Date.now() - local._cachedAt < 5000) return local;
+      }
+      return serverGroup;
+    });
+    flushSyncQueue().catch(() => {});
+    return mergedGroups;
+  };
+
+  const { data: syncGroups, loading: loadingGroups, mutate: setGroupsRaw, revalidate: fetchGroups } = useDataSync<Group[]>({
+    fetcher: fetchGroupsData,
+    cacheFetcher: async () => {
+      const cached = await getCachedGroups();
+      return cached.length > 0 ? cached : null;
+    },
+    cacheUpdater: async (data) => { await cacheGroups(data); },
+  });
+  const groups = syncGroups ?? [];
+  const setGroups = (updater: Group[] | ((prev: Group[]) => Group[])) => {
+    if (typeof updater === 'function') setGroupsRaw(updater(groups), true);
+    else setGroupsRaw(updater, true);
+  };
+  const loading = loadingGroups;
+
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [joinGroupId, setJoinGroupId] = useState("");
   const [joinSecretKey, setJoinSecretKey] = useState("");
@@ -55,61 +93,7 @@ export function GroupListView({ baseRoute = "/groups", apiQuery = "" }: { baseRo
     localStorage.setItem("reimbursify_group_view_mode", mode);
   };
 
-  const fetchGroups = async () => {
-    setLoading(true);
-
-    // ── Serve cached data immediately (offline-first) ──────────────────────
-    try {
-      const cached = await getCachedGroups();
-      if (cached.length > 0) {
-        setGroups(cached);
-        setLoading(false); // Show cached data instantly
-      }
-    } catch (_) {}
-
-    // ── Then hit the network and update both UI + cache ────────────────────
-    try {
-      // Get pending queue BEFORE flushing so we know what's in-flight
-      const syncQueue = await getSyncQueue();
-      const pendingGroupIds = syncQueue.map(item => {
-        const match = item.url.match(/\/api\/groups\/([^/]+)\/preferences/);
-        return match ? match[1] : null;
-      }).filter(Boolean);
-
-      const res = await fetch(`/api/groups${apiQuery}`, { headers: { "Cache-Control": "no-cache" } });
-      if (res.ok) {
-        const data = await res.json();
-        const serverGroups = data.groups || [];
-
-        const localGroups = await getCachedGroups();
-        const mergedGroups = serverGroups.map((serverGroup: Group) => {
-          const local = localGroups.find((g: Group) => g.groupId === serverGroup.groupId);
-          if (local) {
-            // Prefer local if it's currently in the sync queue
-            if (pendingGroupIds.includes(serverGroup.groupId)) {
-              return local;
-            }
-            // Prefer local if it was cached extremely recently (under 5 seconds ago)
-            // This prevents race conditions where the queue just flushed but the DB fetch is stale
-            if (local._cachedAt && Date.now() - local._cachedAt < 5000) {
-              return local;
-            }
-          }
-          return serverGroup;
-        });
-
-        setGroups(mergedGroups);
-        await cacheGroups(mergedGroups).catch(() => {});
-      }
-
-      // Flush queue AFTER applying logic
-      flushSyncQueue().catch(() => {});
-    } catch (error) {
-      console.error("Failed to fetch groups", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // handled by useDataSync
 
   const handleJoinGroup = async (e: React.FormEvent) => {
     e.preventDefault();

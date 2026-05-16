@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { FileCheck, Edit, CheckCircle } from "lucide-react";
 import { FormInterface } from "@/components/form-interface";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedSubmissions, cacheSubmissions } from "@/lib/offline-db";
 
 interface Submission {
   id: string;
@@ -16,12 +18,35 @@ interface Submission {
 }
 
 export default function MyResponsesPage() {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: syncSubs, loading: loadingSubs, mutate: setSubmissions, revalidate: fetchSubmissions } = useDataSync<Submission[]>({
+    fetcher: async () => {
+      const res = await fetch("/api/submissions", { headers: { "Cache-Control": "no-cache" } });
+      if (!res.ok) throw new Error("Failed to fetch submissions");
+      const data = await res.json();
+      return data.submissions || [];
+    },
+    cacheFetcher: async () => {
+      const cached = await getCachedSubmissions();
+      return cached.length > 0 ? cached as Submission[] : null;
+    },
+    cacheUpdater: async (data) => { await cacheSubmissions(data); },
+  });
+  const submissions = syncSubs ?? [];
+  const loading = loadingSubs;
+
+  const { data: syncAttestSubs, revalidate: fetchAttestationSubmissions } = useDataSync<Submission[]>({
+    fetcher: async () => {
+      const res = await fetch("/api/submissions?needsAttestation=true", { headers: { "Cache-Control": "no-cache" } });
+      if (!res.ok) throw new Error("Failed to fetch attestation submissions");
+      const data = await res.json();
+      return data.submissions || [];
+    },
+  });
+  const attestationSubs = syncAttestSubs ?? [];
+
   const [expandedId, setExpandedIdState] = useState<string | null>(null);
   const [editingDraftId, setEditingDraftIdState] = useState<string | null>(null);
   const [filter, setFilterState] = useState<"all" | "DRAFT" | "SUBMITTED" | "SETTLED" | "needs_attestation">("all");
-  const [attestationSubs, setAttestationSubs] = useState<Submission[]>([]);
 
   useEffect(() => {
     const savedFilter = localStorage.getItem("reimbursify_responses_filter");
@@ -54,31 +79,7 @@ export default function MyResponsesPage() {
     else localStorage.removeItem("reimbursify_responses_editing_draft_id");
   };
 
-  const fetchSubmissions = async () => {
-    try {
-      const res = await fetch("/api/submissions");
-      if (res.ok) {
-        const data = await res.json();
-        setSubmissions(data.submissions || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch submissions:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAttestationSubmissions = async () => {
-    try {
-      const res = await fetch("/api/submissions?needsAttestation=true");
-      if (res.ok) {
-        const data = await res.json();
-        setAttestationSubs(data.submissions || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch attestation submissions:", err);
-    }
-  };
+  // handled by useDataSync hooks
 
   const handleSettleForm = async (id: string) => {
     if (!confirm("Are you sure you want to mark this form as settled?")) return;

@@ -6,7 +6,8 @@
  */
 
 const DB_NAME    = "reimbursify-offline";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
+const CACHE_TTL_MS = 15 * 24 * 60 * 60 * 1000; // 15 days
 
 // ── Store names ──────────────────────────────────────────────────────────────
 const STORES = {
@@ -15,6 +16,7 @@ const STORES = {
   FORMS:       "forms",
   SUBMISSIONS: "submissions",
   GROUPS:      "groups",
+  MESSAGES:    "messages",
   SYNC_QUEUE:  "sync-queue",
   API_CACHE:   "api-cache",
 } as const;
@@ -60,6 +62,7 @@ export async function getDB(): Promise<IDBDatabase> {
       create(STORES.FORMS,       "id");
       create(STORES.SUBMISSIONS, "id", [{ name: "templateId", key: "templateId" }]);
       create(STORES.GROUPS,      "id");
+      create(STORES.MESSAGES,    "id", [{ name: "groupId",   key: "groupId"   }]);
       create(STORES.SYNC_QUEUE,  "id", [{ name: "createdAt",  key: "createdAt"  }], true);
       create(STORES.API_CACHE,   "url");
     };
@@ -158,6 +161,41 @@ export const cacheSingleSubmission = (sub: any)  => put(STORES.SUBMISSIONS, { ..
 export const cacheGroups    = (groups: any[]) => Promise.all(groups.map((g) => put(STORES.GROUPS, { ...g, _cachedAt: Date.now() })));
 export const getCachedGroups = ()            => getAll(STORES.GROUPS);
 export const cacheSingleGroup = (group: any)  => put(STORES.GROUPS, { ...group, _cachedAt: Date.now() });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGES
+// ─────────────────────────────────────────────────────────────────────────────
+export const cacheMessages         = (msgs: any[])     => Promise.all(msgs.map((m) => put(STORES.MESSAGES, { ...m, _cachedAt: Date.now() })));
+export const getCachedMessages     = ()                => getAll(STORES.MESSAGES);
+export const getCachedMessagesByGroup = (groupId: string) => getAllByIndex(STORES.MESSAGES, "groupId", groupId);
+export const cacheSingleMessage    = (msg: any)        => put(STORES.MESSAGES, { ...msg, _cachedAt: Date.now() });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURGE EXPIRED (15 days) — call on app startup
+// ─────────────────────────────────────────────────────────────────────────────
+export async function purgeExpired(): Promise<void> {
+  const now = Date.now();
+  const stores = [STORES.TRIPS, STORES.EXPENSES, STORES.FORMS, STORES.SUBMISSIONS, STORES.GROUPS, STORES.MESSAGES];
+  const db = await getDB();
+  for (const storeName of stores) {
+    try {
+      const tx = db.transaction(storeName, "readwrite");
+      const store = tx.objectStore(storeName);
+      const req = store.getAll();
+      await new Promise<void>((resolve) => {
+        req.onsuccess = () => {
+          for (const item of req.result || []) {
+            if (item._cachedAt && (now - item._cachedAt) > CACHE_TTL_MS) {
+              store.delete(item.id || item.url);
+            }
+          }
+          resolve();
+        };
+        req.onerror = () => resolve();
+      });
+    } catch (_) {}
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SYNC QUEUE  (mutations made while offline)

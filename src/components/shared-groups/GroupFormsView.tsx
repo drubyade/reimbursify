@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { FormInterface } from "@/components/form-interface";
 import { OfflineGuard } from "@/components/OfflineGuard";
+import { useDataSync } from "@/hooks/useDataSync";
 import { ArrowLeft, MessageSquare, FileText, ClipboardList, Sparkles, Users, Building2, LayoutGrid, List } from "lucide-react";
 
 interface FormTemplate {
@@ -24,12 +25,20 @@ interface GroupInfo {
 
 export function GroupFormsView({ groupId, baseRoute = "/groups" }: { groupId: string, baseRoute?: string }) {
   const router = useRouter();
-  const [group, setGroup] = useState<GroupInfo | null>(null);
-  const [forms, setForms] = useState<FormTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: groupData, loading: loadingGroup, error: groupError } = useDataSync<any>({
+    url: `/api/groups/${groupId}`,
+  });
+  const group = groupData?.group || null;
+  const error = groupError ? "Group not found or you don't have access." : null;
+
+  const { data: formsData, loading: loadingForms } = useDataSync<any>({
+    url: `/api/forms?active=true&groupId=${groupId}`,
+  });
+  const forms: FormTemplate[] = formsData?.forms || [];
+  const loading = loadingGroup || loadingForms;
+
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
@@ -52,7 +61,7 @@ export function GroupFormsView({ groupId, baseRoute = "/groups" }: { groupId: st
     if (savedViewMode === "grid" || savedViewMode === "list") {
       setViewMode(savedViewMode);
     }
-    fetchGroupForms();
+    // fetchGroupForms();
   }, [groupId]);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
@@ -64,29 +73,7 @@ export function GroupFormsView({ groupId, baseRoute = "/groups" }: { groupId: st
     router.push(`${baseRoute}/${groupId}/messages`);
   };
 
-  const fetchGroupForms = async () => {
-    try {
-      const groupRes = await fetch(`/api/groups/${groupId}`);
-      if (!groupRes.ok) {
-        setError("Group not found or you don't have access.");
-        setLoading(false);
-        return;
-      }
-      const groupData = await groupRes.json();
-      setGroup(groupData.group);
-
-      const formsRes = await fetch(`/api/forms?active=true&groupId=${groupId}`);
-      if (formsRes.ok) {
-        const formsData = await formsRes.json();
-        setForms(formsData.forms || []);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load group data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // handled automatically by useDataSync
 
   if (loading) {
     return (

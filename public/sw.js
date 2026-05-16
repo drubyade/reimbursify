@@ -7,7 +7,7 @@
 //   • Connectivity     : poll every 10 s; flush queue the moment we come online
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION   = "v12";         // bump to force fresh install
+const CACHE_VERSION   = "v13";         // bump to force fresh install
 const STATIC_CACHE    = `reimb-static-${CACHE_VERSION}`;
 const BUILD_CACHE     = `reimb-build-${CACHE_VERSION}`;   // for _next/static/**
 const API_CACHE       = `reimb-api-${CACHE_VERSION}`;
@@ -16,6 +16,7 @@ const DB_NAME         = "reimbursify-offline";
 const DB_VERSION      = 4;
 const QUEUE_STORE     = "sync-queue";
 const CACHE_STORE     = "api-cache";
+const CACHE_TTL_MS    = 15 * 24 * 60 * 60 * 1000; // 15 days in ms
 
 // ── ALL app routes to pre-cache at install ──────────────────────────────────
 const PRECACHE_URLS = [
@@ -46,12 +47,14 @@ const CACHEABLE_API_PATTERNS = [
   /^\/api\/groups\/[^/]+(\?|$)/,
   /^\/api\/profile(\?|$)/,
   /^\/api\/profile\/payment-cards(\?|$)/,
+  /^\/api\/messages(\?|$)/,
+  /^\/api\/messages\/[^/]+(\?|$)/,
+  /^\/api\/direct-messages(\?|$)/,
+  /^\/api\/direct-messages\/[^/]+(\?|$)/,
 ];
 
 // ── Features that require online access ──────────────────────────────────────
 const ONLINE_ONLY_PATTERNS = [
-  /^\/api\/messages/,
-  /^\/api\/direct-messages/,
   /^\/api\/forms-builder/,
 ];
 
@@ -170,9 +173,30 @@ self.addEventListener("activate", (event) => {
           .filter((n) => n !== STATIC_CACHE && n !== API_CACHE && n !== BUILD_CACHE)
           .map((n) => caches.delete(n))
       )
-    ).then(() => self.clients.claim())
+    )
+    .then(() => cleanExpiredCache())
+    .then(() => self.clients.claim())
   );
 });
+
+// ── Purge IndexedDB entries older than 15 days ──────────────────────────────
+async function cleanExpiredCache() {
+  try {
+    const db = await openDB();
+    const now = Date.now();
+    const tx = db.transaction(CACHE_STORE, "readwrite");
+    const store = tx.objectStore(CACHE_STORE);
+    const req = store.getAll();
+    req.onsuccess = () => {
+      const entries = req.result || [];
+      for (const entry of entries) {
+        if (entry.cachedAt && (now - entry.cachedAt) > CACHE_TTL_MS) {
+          store.delete(entry.url);
+        }
+      }
+    };
+  } catch (_) {}
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FETCH
