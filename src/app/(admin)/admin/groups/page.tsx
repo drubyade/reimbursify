@@ -49,6 +49,8 @@ export default function AdminGroupsPage() {
     if (savedShowArchived === "true") setShowArchived(true);
 
     fetchGroups();
+    const id = setInterval(fetchGroups, 500);
+    return () => clearInterval(id);
   }, []);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
@@ -57,9 +59,9 @@ export default function AdminGroupsPage() {
   };
 
   const fetchGroups = async () => {
-    setLoading(true);
+    if (groups.length === 0) setLoading(true);
     try {
-      const res = await fetch("/api/groups");
+      const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups || []);

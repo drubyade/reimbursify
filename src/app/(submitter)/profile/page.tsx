@@ -40,8 +40,8 @@ export default function ProfilePage() {
 
     const fetchPaymentCards = async () => {
       try {
-        setLoading(true);
-        const cardsResponse = await fetch("/api/profile/payment-cards");
+        if (paymentCards.length === 0) setLoading(true);
+        const cardsResponse = await fetch("/api/profile/payment-cards", { headers: { "Cache-Control": "no-cache" } });
         if (cardsResponse.ok) {
           const cardsData = await cardsResponse.json();
           setPaymentCards(cardsData.cards || []);
@@ -54,6 +54,8 @@ export default function ProfilePage() {
     };
 
     fetchPaymentCards();
+    const id = setInterval(fetchPaymentCards, 500);
+    return () => clearInterval(id);
   }, [session?.user?.id]);
 
 

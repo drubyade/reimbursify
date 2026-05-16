@@ -39,14 +39,18 @@ export const AdminApprovalPanel: React.FC = () => {
 
   useEffect(() => {
     fetchSubmissions();
+    // Poll every 500ms for real-time consistency
+    const id = setInterval(fetchSubmissions, 500);
+    return () => clearInterval(id);
   }, [filter]);
 
   const fetchSubmissions = async () => {
     try {
-      setLoading(true);
+      // Only show loading spinner on very first load, not on polls
+      if (submissions.length === 0) setLoading(true);
 
       if (filter === "needs_attestation") {
-        const res = await fetch("/api/submissions?needsAttestation=true");
+        const res = await fetch("/api/submissions?needsAttestation=true", { headers: { "Cache-Control": "no-cache" } });
         if (res.ok) {
           const data = await res.json();
           setSubmissions(data.submissions || []);
@@ -59,7 +63,7 @@ export const AdminApprovalPanel: React.FC = () => {
           url.searchParams.set("status", "REVIEWED");
         }
 
-        const res = await fetch(url.toString());
+        const res = await fetch(url.toString(), { headers: { "Cache-Control": "no-cache" } });
         if (res.ok) {
           const data = await res.json();
           setSubmissions(data.submissions || []);

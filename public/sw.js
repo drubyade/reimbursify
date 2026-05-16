@@ -382,6 +382,7 @@ async function buildStaleWhileRevalidate(request) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function apiStaleWhileRevalidate(request) {
   const key = request.url;
+  const isNoCache = request.headers.get("Cache-Control") === "no-cache";
 
   // Fire network request in background immediately
   const networkPromise = fetch(request.clone()).then(async (response) => {
@@ -399,6 +400,14 @@ async function apiStaleWhileRevalidate(request) {
     }
     return response;
   }).catch(() => null);
+
+  // If the client explicitly asked for no-cache (e.g. 500ms background polling),
+  // skip the cache-first approach and wait for network directly, but still update cache.
+  // This acts like a background hard refresh for the frontend polling.
+  if (isNoCache && navigator.onLine) {
+    const netResponse = await networkPromise;
+    if (netResponse) return netResponse;
+  }
 
   // Return cached version immediately if available
   const cached = await caches.match(request);

@@ -2,32 +2,32 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-// ── Global poll interval: 500ms when online for real-time consistency ────────
+/**
+ * useDataSync — Offline-first SWR hook for Reimbursify PWA.
+ *
+ * Data flow:
+ *   1. Mount → read IndexedDB cache → render instantly
+ *   2. Fire network fetch → compare → update state only if changed
+ *   3. Poll every 500ms (when online) for real-time consistency
+ *   4. On reconnect → immediate revalidation
+ */
+
 const DEFAULT_POLL_MS = 500;
 
 interface UseDataSyncOptions<T> {
-  /** Direct URL — hook will fetch and store the raw JSON response */
   url?: string | null;
-  /** Custom fetcher — use when you need to transform the response before storing */
   fetcher?: () => Promise<T>;
-  /** Reads cached data from IndexedDB on mount (instant render) */
   cacheFetcher?: () => Promise<T | null>;
-  /** Writes fresh data back to IndexedDB after each successful network fetch */
   cacheUpdater?: (data: T) => Promise<void>;
-  /** Polling interval in ms (default 500). Set 0 to disable polling. */
   pollInterval?: number;
 }
 
 interface UseDataSyncReturn<T> {
   data: T | null;
-  /** True ONLY when there is zero data (not even cached). False once anything loads. */
   loading: boolean;
-  /** True while a background network fetch is in progress. */
   isValidating: boolean;
   error: Error | null;
-  /** Optimistically update local state + cache without a network round-trip. */
   mutate: (newData: T, updateCache?: boolean) => void;
-  /** Force an immediate network re-fetch. */
   revalidate: () => Promise<void>;
 }
 
@@ -39,126 +39,122 @@ export function useDataSync<T>({
   pollInterval = DEFAULT_POLL_MS,
 }: UseDataSyncOptions<T>): UseDataSyncReturn<T> {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // ── Refs for everything used inside callbacks / intervals ──────────────────
-  const dataRef = useRef<T | null>(null);
+  // ── Stable refs — assigned synchronously every render ─────────────────────
+  const dataStrRef = useRef("");
+  const busyRef = useRef(false);
+  const mountedRef = useRef(true);
   const urlRef = useRef(url);
   const fetcherRef = useRef(fetcher);
   const cacheFetcherRef = useRef(cacheFetcher);
   const cacheUpdaterRef = useRef(cacheUpdater);
-  const isMounted = useRef(true);
-  const isRevalidating = useRef(false);
-  const initDone = useRef(false);
 
-  // Keep refs in sync every render (cheap, no effect overhead)
+  // Sync refs every render (zero cost, no useEffect needed)
   urlRef.current = url;
   fetcherRef.current = fetcher;
   cacheFetcherRef.current = cacheFetcher;
   cacheUpdaterRef.current = cacheUpdater;
 
+  // Track mount/unmount
   useEffect(() => {
-    isMounted.current = true;
-    return () => { isMounted.current = false; };
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
   }, []);
 
-  // ── Core revalidation ─────────────────────────────────────────────────────
-  const revalidate = useCallback(async () => {
-    if ((!urlRef.current && !fetcherRef.current) || !navigator.onLine) return;
-    if (isRevalidating.current) return;
-    isRevalidating.current = true;
+  // ── Stable fetch function (never changes identity) ────────────────────────
+  const doFetch = useCallback(async () => {
+    const fn = fetcherRef.current;
+    const u = urlRef.current;
+    if (!fn && !u) return;
+    if (!navigator.onLine) return;
+    if (busyRef.current) return; // skip if previous fetch still in-flight
+    busyRef.current = true;
 
-    if (isMounted.current) setIsValidating(true);
+    if (mountedRef.current) setIsValidating(true);
     try {
-      let newData: T;
-      if (fetcherRef.current) {
-        newData = await fetcherRef.current();
+      let result: T;
+      if (fn) {
+        result = await fn();
       } else {
-        const res = await fetch(urlRef.current!, {
-          headers: { "Cache-Control": "no-cache" },
-        });
+        const res = await fetch(u!, { headers: { "Cache-Control": "no-cache" } });
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-        newData = await res.json();
+        result = await res.json();
       }
 
-      // Only update React state if data actually changed
-      const oldStr = JSON.stringify(dataRef.current);
-      const newStr = JSON.stringify(newData);
-
-      if (oldStr !== newStr && isMounted.current) {
-        setData(newData);
-        dataRef.current = newData;
-        cacheUpdaterRef.current?.(newData).catch(() => {});
+      // Deep-compare: only update React state when payload actually changed
+      const newStr = JSON.stringify(result);
+      if (newStr !== dataStrRef.current && mountedRef.current) {
+        dataStrRef.current = newStr;
+        setData(result);
+        cacheUpdaterRef.current?.(result).catch(() => {});
       }
-      if (isMounted.current) {
+
+      if (mountedRef.current) {
         setError(null);
         setLoading(false);
       }
     } catch (err: any) {
-      if (isMounted.current) setError(err);
+      if (mountedRef.current) setError(err);
     } finally {
-      isRevalidating.current = false;
-      if (isMounted.current) setIsValidating(false);
+      busyRef.current = false;
+      if (mountedRef.current) setIsValidating(false);
     }
-  }, []);
+  }, []); // stable — reads from refs only
 
-  // ── Determine if we have a data source ────────────────────────────────────
+  // ── Track whether a data source exists (stable boolean trigger) ───────────
   const hasSource = !!(url || fetcher);
 
-  // ── Init: load cache → first revalidation → start polling ─────────────────
+  // ── Main lifecycle: cache → fetch → poll ──────────────────────────────────
   useEffect(() => {
     if (!hasSource) return;
-
-    let interval: ReturnType<typeof setInterval>;
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
 
-    const init = async () => {
-      // 1. Serve from cache instantly (always try, never skip)
-      if (cacheFetcherRef.current) {
-        try {
-          const cached = await cacheFetcherRef.current();
-          if (cached != null && !cancelled && isMounted.current) {
-            setData(cached);
-            dataRef.current = cached;
-            setLoading(false); // We have data from cache — no spinner
-          }
-        } catch (_) {}
-      }
+    // 1. Read from cache IMMEDIATELY for instant render
+    const cf = cacheFetcherRef.current;
+    if (cf) {
+      cf().then((cached) => {
+        if (cached != null && !cancelled && mountedRef.current) {
+          const cachedStr = JSON.stringify(cached);
+          dataStrRef.current = cachedStr;
+          setData(cached);
+          setLoading(false);
+        }
+      }).catch(() => {});
+    }
 
-      // 2. Immediately revalidate from network
-      if (!cancelled) await revalidate();
+    // 2. Fire first network fetch (does not block polling start)
+    doFetch();
 
-      // 3. Start fast polling
-      if (pollInterval > 0 && !cancelled) {
-        interval = setInterval(revalidate, pollInterval);
-      }
-      initDone.current = true;
-    };
-
-    init();
+    // 3. Start 500ms polling unconditionally
+    if (pollInterval > 0) {
+      intervalId = setInterval(doFetch, pollInterval);
+    }
 
     return () => {
       cancelled = true;
-      if (interval) clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [hasSource, pollInterval, revalidate]);
+  }, [hasSource, pollInterval, doFetch]);
 
-  // ── Re-validate immediately when coming back online ───────────────────────
+  // ── Reconnect handler ─────────────────────────────────────────────────────
   useEffect(() => {
-    const h = () => revalidate();
+    const h = () => { busyRef.current = false; doFetch(); };
     window.addEventListener("online", h);
     return () => window.removeEventListener("online", h);
-  }, [revalidate]);
+  }, [doFetch]);
 
   // ── Optimistic mutate ─────────────────────────────────────────────────────
   const mutate = useCallback((newData: T, updateCache = true) => {
+    const newStr = JSON.stringify(newData);
+    dataStrRef.current = newStr;
     setData(newData);
-    dataRef.current = newData;
     setLoading(false);
     if (updateCache) cacheUpdaterRef.current?.(newData).catch(() => {});
   }, []);
 
-  return { data, loading, isValidating, error, mutate, revalidate };
+  return { data, loading, isValidating, error, mutate, revalidate: doFetch };
 }

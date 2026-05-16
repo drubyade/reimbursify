@@ -39,24 +39,26 @@ export default function AnalyticsPage() {
 
     const fetchStats = async () => {
       try {
-        setLoading(true);
+        if (!stats) setLoading(true);
         // Fetch profile
-        fetch("/api/profile")
+        fetch("/api/profile", { headers: { "Cache-Control": "no-cache" } })
           .then(res => res.json())
           .then(data => {
             if (data.user) {
               setProfile(data.user);
-              setProfileForm({
-                name: data.user.name || "",
-                department: data.user.department || "",
-                designation: data.user.designation || "",
-              });
+              if (!editingProfile) {
+                setProfileForm({
+                  name: data.user.name || "",
+                  department: data.user.department || "",
+                  designation: data.user.designation || "",
+                });
+              }
             }
           })
           .catch(console.error);
 
         // Fetch all trips to calculate stats
-        const tripsResponse = await fetch("/api/trips?archived=false");
+        const tripsResponse = await fetch("/api/trips?archived=false", { headers: { "Cache-Control": "no-cache" } });
         if (!tripsResponse.ok) throw new Error("Failed to fetch trips");
 
         const tripsData = await tripsResponse.json();
@@ -107,6 +109,8 @@ export default function AnalyticsPage() {
     };
 
     fetchStats();
+    const id = setInterval(fetchStats, 500);
+    return () => clearInterval(id);
   }, [session?.user?.id]);
 
   const handleSaveProfile = async () => {

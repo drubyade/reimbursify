@@ -113,18 +113,22 @@ function FormManagementContent() {
   useEffect(() => {
     if (!session?.user?.id) return;
     fetchGroups();
+    const id = setInterval(fetchGroups, 500);
+    return () => clearInterval(id);
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (selectedGroupId) {
       fetchForms(selectedGroupId);
+      const id = setInterval(() => fetchForms(selectedGroupId), 500);
+      return () => clearInterval(id);
     }
   }, [selectedGroupId]);
 
   const fetchGroups = async () => {
     try {
-      setLoading(true);
-      const res = await fetch("/api/groups");
+      if (groups.length === 0) setLoading(true);
+      const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Failed to fetch groups");
       const data = await res.json();
       // Only show unarchived groups
@@ -139,8 +143,8 @@ function FormManagementContent() {
 
   const fetchForms = async (groupId: string) => {
     try {
-      setLoading(true);
-      const res = await fetch(`/api/forms-builder?groupId=${groupId}`);
+      if (forms.length === 0) setLoading(true);
+      const res = await fetch(`/api/forms-builder?groupId=${groupId}`, { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Failed to fetch forms");
       const data = await res.json();
       setForms(data.forms || []);

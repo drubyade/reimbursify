@@ -22,11 +22,13 @@ export default function MessagesPage() {
 
   useEffect(() => {
     fetchGroups();
+    const id = setInterval(fetchGroups, 500);
+    return () => clearInterval(id);
   }, []);
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch("/api/groups");
+      const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups || []);

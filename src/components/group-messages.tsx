@@ -121,14 +121,14 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
 
   useEffect(() => {
     fetchRecentUsers();
-    const interval = setInterval(fetchRecentUsers, 5000);
+    const interval = setInterval(fetchRecentUsers, 500);
     return () => clearInterval(interval);
   }, [groupId]);
 
   useEffect(() => {
     if (!selectedUser) return;
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
+    const interval = setInterval(fetchMessages, 500);
     return () => clearInterval(interval);
   }, [selectedUser?.id, groupId]);
 
