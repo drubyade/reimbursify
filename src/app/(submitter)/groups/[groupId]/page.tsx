@@ -40,7 +40,6 @@ function GroupFormsContent({ params }: { params: Promise<{ groupId: string }> })
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const [isOpeningMessages, setIsOpeningMessages] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   useEffect(() => {
@@ -71,10 +70,7 @@ function GroupFormsContent({ params }: { params: Promise<{ groupId: string }> })
   };
 
   const handleOpenMessages = () => {
-    setIsOpeningMessages(true);
-    setTimeout(() => {
-      router.push(`/groups/${groupId}/messages`);
-    }, 800);
+    router.push(`/groups/${groupId}/messages`);
   };
 
   const fetchGroupForms = async () => {
@@ -153,21 +149,7 @@ function GroupFormsContent({ params }: { params: Promise<{ groupId: string }> })
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50/50 px-6 pb-6 md:px-8 md:pb-8 pt-0 h-full relative">
       
-      {/* Opening Messages Loader Modal */}
-      {isOpeningMessages && (
-        <div className="fixed inset-0 bg-[#0a192f]/60 backdrop-blur-md z-[9999] flex flex-col items-center justify-center animate-fade-in">
-          <div className="bg-white p-8 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center gap-6 max-w-[280px] w-full transform animate-in zoom-in-95 duration-300">
-            <div className="relative flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full border-4 border-blue-100 border-t-[var(--primary)] animate-spin" />
-              <MessageSquare className="absolute text-[var(--primary)] w-6 h-6 animate-pulse" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-extrabold text-gray-900 mb-1">Opening...</h3>
-              <p className="text-sm font-medium text-gray-500">Loading messages securely</p>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
 
@@ -234,8 +216,7 @@ function GroupFormsContent({ params }: { params: Promise<{ groupId: string }> })
               {/* Messages Button */}
               <button
                 onClick={handleOpenMessages}
-                disabled={isOpeningMessages}
-                className="flex items-center justify-center gap-2 px-5 py-2 h-[40px] bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl text-sm font-bold shadow-[0_4px_15px_rgba(245,158,11,0.4)] hover:shadow-[0_6px_20px_rgba(245,158,11,0.6)] hover:-translate-y-0.5 transition-all border-none shrink-0 disabled:opacity-70 disabled:cursor-wait"
+                className="flex items-center justify-center gap-2 px-5 py-2 h-[40px] bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl text-sm font-bold shadow-[0_4px_15px_rgba(245,158,11,0.4)] hover:shadow-[0_6px_20px_rgba(245,158,11,0.6)] hover:-translate-y-0.5 transition-all border-none shrink-0"
               >
                 <MessageSquare size={16} />
                 <span className="hidden sm:inline">Open</span> Messages

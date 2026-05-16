@@ -55,6 +55,7 @@ export function GroupMessages({ groupId }: { groupId: string }) {
   const [selectedUser, setSelectedUserState] = useState<DMUser | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [initialAppLoading, setInitialAppLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -114,6 +115,8 @@ export function GroupMessages({ groupId }: { groupId: string }) {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setInitialAppLoading(false);
     }
   };
 
@@ -125,7 +128,8 @@ export function GroupMessages({ groupId }: { groupId: string }) {
 
   useEffect(() => {
     if (!selectedUser) return;
-    fetchMessages();
+    setLoadingMessages(true);
+    fetchMessages().finally(() => setLoadingMessages(false));
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [selectedUser?.id, groupId]);
@@ -137,7 +141,6 @@ export function GroupMessages({ groupId }: { groupId: string }) {
   const fetchMessages = async () => {
     if (!selectedUser?.id) return;
     try {
-      setLoadingMessages(true);
       const response = await fetch(
         `/api/direct-messages?groupId=${encodeURIComponent(groupId)}&otherId=${selectedUser.id}`
       );
@@ -146,8 +149,6 @@ export function GroupMessages({ groupId }: { groupId: string }) {
       }
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoadingMessages(false);
     }
   };
 
@@ -193,7 +194,21 @@ export function GroupMessages({ groupId }: { groupId: string }) {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-white">
+    <div className="flex flex-col flex-1 min-h-0 bg-white relative">
+      {initialAppLoading && (
+        <div className="fixed inset-0 bg-[#0a192f]/60 backdrop-blur-md z-[9999] flex flex-col items-center justify-center animate-fade-in">
+          <div className="bg-white p-8 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center gap-6 max-w-[280px] w-full transform animate-in zoom-in-95 duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full border-4 border-blue-100 border-t-indigo-600 animate-spin" />
+              <MessageCircle className="absolute text-indigo-600 w-6 h-6 animate-pulse" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-extrabold text-gray-900 mb-1">Opening...</h3>
+              <p className="text-sm font-medium text-gray-500">Loading messages securely</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
         <div className={`${selectedUser ? "hidden md:flex" : "flex"} w-full md:w-[320px] lg:w-[380px] border-r border-gray-100 bg-indigo-50/80 flex-col shrink-0`}>
