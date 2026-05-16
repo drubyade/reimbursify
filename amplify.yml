@@ -11,6 +11,8 @@ frontend:
         - echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env.production
     build:
       commands:
+        - export DATABASE_URL=$DATABASE_URL
+        - npx prisma db push --accept-data-loss
         - npm run build
   artifacts:
     baseDirectory: .next
