@@ -23,6 +23,8 @@ export type FieldType =
   | "other_expenses_table"       // Registration/Visa/Other rows (Section 15)
   | "signature_authority"        // Manager signature placeholder
   | "data_grid"
+  | "subheading"
+  | "text_with_fill_ins"
   | "yesno";
 
 export type ExpenseType =
@@ -59,6 +61,9 @@ export interface FormField {
   minLength?: number;
   maxLength?: number;
   pattern?: string; // regex pattern for validation
+  
+  // Advanced Form Layout
+  templateText?: string;
   
   // Scale/Rating configuration
   minLabel?: string;
@@ -115,10 +120,24 @@ export interface FormFieldConfig {
   label: string;
   icon?: string;
   description: string;
-  group: "text" | "choice" | "scale" | "date" | "advanced";
+  group: "text" | "choice" | "scale" | "date" | "advanced" | "layout";
 }
 
 export const FIELD_CONFIGS: Record<FieldType, FormFieldConfig> = {
+  subheading: {
+    key: "subheading",
+    label: "Subheading",
+    icon: "H",
+    description: "A section subheading or descriptive text (no user input)",
+    group: "layout",
+  },
+  text_with_fill_ins: {
+    key: "text_with_fill_ins",
+    label: "Text with Fill-ins",
+    icon: "📄",
+    description: "A paragraph with blank spaces for users to fill in",
+    group: "layout",
+  },
   short_text: {
     key: "short_text",
     label: "Short Answer",

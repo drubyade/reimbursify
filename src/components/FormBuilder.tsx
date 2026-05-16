@@ -539,11 +539,13 @@ export function FormBuilder({
                 {currentSection.description && <p>{currentSection.description}</p>}
                 {currentSection.fields.map((field) => (
                   <div key={field.id} className={styles.previewField}>
-                    <label>
-                      {field.label}
-                      {field.required && <span style={{ color: "red" }}> *</span>}
-                    </label>
-                    {field.description && (
+                    {field.type !== "subheading" && (
+                      <label>
+                        {field.label}
+                        {field.required && <span style={{ color: "red" }}> *</span>}
+                      </label>
+                    )}
+                    {field.description && field.type !== "subheading" && (
                       <p style={{ fontSize: "0.85rem", color: "#666" }}>
                         {field.description}
                       </p>
@@ -658,16 +660,51 @@ function FieldEditor({
 
       {isExpanded && (
         <div className={styles.fieldSettings}>
-          <div className={styles.settingGroup}>
-            <label>
-              <input
-                type="checkbox"
-                checked={field.required}
-                onChange={(e) => onUpdate({ required: e.target.checked })}
+          {field.type !== "subheading" && (
+            <div className={styles.settingGroup}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={field.required}
+                  onChange={(e) => onUpdate({ required: e.target.checked })}
+                />
+                Required
+              </label>
+            </div>
+          )}
+
+          {field.type === "text_with_fill_ins" && (
+            <div className={styles.settingGroup}>
+              <label style={{ display: "block", marginBottom: "0.5rem" }}>Template Text</label>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentText = field.templateText || "";
+                  onUpdate({ templateText: currentText + "[BLANK]" });
+                }}
+                style={{
+                  padding: "0.4rem 0.8rem",
+                  background: "#e0e7ff",
+                  color: "#3730a3",
+                  border: "1px solid #c7d2fe",
+                  borderRadius: "0.4rem",
+                  fontSize: "0.8rem",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  marginBottom: "0.5rem",
+                  display: "inline-block"
+                }}
+              >
+                + Add space for short answer
+              </button>
+              <textarea
+                value={field.templateText || ""}
+                onChange={(e) => onUpdate({ templateText: e.target.value })}
+                placeholder="Enter text here. Click the button above to insert a fill-in blank."
+                style={{ width: "100%", minHeight: "100px", padding: "0.5rem", borderRadius: "0.4rem", border: "1px solid #e5e7eb", marginTop: "0.5rem" }}
               />
-              Required
-            </label>
-          </div>
+            </div>
+          )}
 
           {field.type === "short_text" && (
             <div className={styles.settingGroup}>
@@ -1080,6 +1117,27 @@ function FieldPreview({ field }: FieldPreviewProps) {
         <div style={{ display: "flex", gap: "1rem" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><input type="radio" disabled />Yes</label>
           <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><input type="radio" disabled />No</label>
+        </div>
+      );
+    case "subheading":
+      return (
+        <div style={{ borderBottom: "2px solid #e5e7eb", paddingBottom: "0.5rem", marginTop: "1rem" }}>
+          <h3 style={{ margin: 0, fontSize: "1.25rem", color: "#111827", fontWeight: "700" }}>{field.label || "Subheading"}</h3>
+          {field.description && <p style={{ margin: "0.25rem 0 0 0", color: "#6b7280", fontSize: "0.9rem" }}>{field.description}</p>}
+        </div>
+      );
+    case "text_with_fill_ins":
+      const parts = (field.templateText || "Sample text [BLANK] goes here.").split("[BLANK]");
+      return (
+        <div style={{ lineHeight: "2" }}>
+          {parts.map((part, i) => (
+            <React.Fragment key={i}>
+              <span>{part}</span>
+              {i < parts.length - 1 && (
+                <input type="text" disabled style={{ width: "80px", margin: "0 0.25rem", borderBottom: "1px solid #9ca3af", borderTop: "none", borderLeft: "none", borderRight: "none", background: "transparent" }} />
+              )}
+            </React.Fragment>
+          ))}
         </div>
       );
     default:

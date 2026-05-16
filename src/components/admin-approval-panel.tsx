@@ -480,6 +480,37 @@ export const AdminApprovalPanel: React.FC = () => {
                                           </div>
                                         );
                                       }
+
+                                      if (field.type === "subheading") {
+                                        return (
+                                          <div key={field.id} className="col-span-1 md:col-span-2 pt-4 pb-2 border-b-2 border-gray-200 mt-2 mb-2" style={{ gridColumn: "1 / -1" }}>
+                                            <h4 className="text-lg font-bold text-gray-900 m-0">{field.label}</h4>
+                                            {field.description && <p className="text-sm text-gray-600 mt-1 mb-0">{field.description}</p>}
+                                          </div>
+                                        );
+                                      }
+
+                                      if (field.type === "text_with_fill_ins") {
+                                        const parts = (field.templateText || "").split("[BLANK]");
+                                        const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
+                                        return (
+                                          <div key={field.id} className="col-span-1 md:col-span-2 bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm" style={{ gridColumn: "1 / -1" }}>
+                                            <div className="text-xs font-bold text-gray-500 uppercase mb-2">{field.label}</div>
+                                            <div className="text-base text-gray-800 leading-relaxed">
+                                              {parts.map((part: string, i: number) => (
+                                                <span key={i}>
+                                                  {part}
+                                                  {i < parts.length - 1 && (
+                                                    <strong className="mx-1 px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded border-b-2 border-indigo-300">
+                                                      {vals[i] || "_____"}
+                                                    </strong>
+                                                  )}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
                                       
                                       return (
                                         <div key={field.id} style={{ padding: "0.75rem", background: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0" }}>

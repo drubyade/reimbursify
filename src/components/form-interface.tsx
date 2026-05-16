@@ -412,7 +412,16 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
     for (const section of sections) {
       for (const field of section.fields || []) {
         if (!field.required) continue;
-        if (field.type === "signature_authority") continue; // Manager fills this
+        if (field.type === "signature_authority" || field.type === "subheading") continue; // Manager fills this, subheading has no input
+        if (field.type === "text_with_fill_ins") {
+          const expectedBlanks = (field.templateText || "").split("[BLANK]").length - 1;
+          const vals = formData[field.id] || [];
+          if (expectedBlanks > 0 && (vals.length < expectedBlanks || Array.from({length: expectedBlanks}).some((_, i) => !vals[i]?.trim()))) {
+            setError(`"${field.label}" requires all blanks to be filled`);
+            return false;
+          }
+          continue;
+        }
         if (EXPENSE_TABLE_TYPES.includes(field.type)) {
           if ((expenseSelections[field.id] || []).length === 0) {
             setError(`"${field.label}" requires at least one selected expense`);
@@ -434,7 +443,15 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
     for (const section of sections) {
       for (const field of section.fields || []) {
         if (!field.required) continue;
-        if (field.type === "signature_authority") continue;
+        if (field.type === "signature_authority" || field.type === "subheading") continue;
+        if (field.type === "text_with_fill_ins") {
+          const expectedBlanks = (field.templateText || "").split("[BLANK]").length - 1;
+          const vals = formData[field.id] || [];
+          if (expectedBlanks > 0 && (vals.length < expectedBlanks || Array.from({length: expectedBlanks}).some((_, i) => !vals[i]?.trim()))) {
+            return false;
+          }
+          continue;
+        }
         if (EXPENSE_TABLE_TYPES.includes(field.type)) {
           if ((expenseSelections[field.id] || []).length === 0) return false;
         } else if (!formData[field.id]) {
@@ -858,6 +875,39 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
     const isReadOnly = !!submissionData && submissionData.status !== "DRAFT";
 
     switch (field.type) {
+      case "subheading":
+        return (
+          <div style={{ borderBottom: "2px solid #e5e7eb", paddingBottom: "0.5rem", marginTop: "0.5rem", marginBottom: "0.5rem" }}>
+            <h3 style={{ margin: 0, fontSize: "1.25rem", color: "#111827", fontWeight: "700" }}>{field.label || "Subheading"}</h3>
+            {field.description && <p style={{ margin: "0.25rem 0 0 0", color: "#6b7280", fontSize: "0.9rem" }}>{field.description}</p>}
+          </div>
+        );
+      case "text_with_fill_ins":
+        const parts = (field.templateText || "Sample text [BLANK] goes here.").split("[BLANK]");
+        const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
+        return (
+          <div style={{ lineHeight: "2.5", fontSize: "0.95rem", padding: "0.5rem", background: isReadOnly ? "transparent" : "#f8fafc", borderRadius: "0.5rem", border: isReadOnly ? "none" : "1px solid #e2e8f0" }}>
+            {parts.map((part: string, i: number) => (
+              <React.Fragment key={i}>
+                <span>{part}</span>
+                {i < parts.length - 1 && (
+                  <input 
+                    type="text" 
+                    value={vals[i] || ""} 
+                    disabled={isReadOnly}
+                    onChange={(e) => {
+                      const newVals = [...vals];
+                      newVals[i] = e.target.value;
+                      handleFieldChange(field.id, newVals);
+                    }}
+                    placeholder={`Blank ${i+1}`}
+                    style={{ width: "140px", margin: "0 0.5rem", borderBottom: "2px solid #0077b6", borderTop: "none", borderLeft: "none", borderRight: "none", background: isReadOnly ? "transparent" : "white", outline: "none", textAlign: "center", fontWeight: "600", color: "#0369a1", transition: "all 0.2s" }} 
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        );
       case "text":
       case "short_text":
       case "email":
