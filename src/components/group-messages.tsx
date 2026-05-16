@@ -54,7 +54,6 @@ export function GroupMessages({ groupId }: { groupId: string }) {
   const [recentUsers, setRecentUsers] = useState<DMUser[]>([]);
   const [selectedUser, setSelectedUserState] = useState<DMUser | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
   const [initialAppLoading, setInitialAppLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -128,8 +127,7 @@ export function GroupMessages({ groupId }: { groupId: string }) {
 
   useEffect(() => {
     if (!selectedUser) return;
-    setLoadingMessages(true);
-    fetchMessages().finally(() => setLoadingMessages(false));
+    fetchMessages();
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [selectedUser?.id, groupId]);
@@ -330,9 +328,7 @@ export function GroupMessages({ groupId }: { groupId: string }) {
 
               {/* Chat Messages */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {loadingMessages ? (
-                  <div className="text-center text-gray-400 text-sm font-medium mt-10 animate-pulse">Loading secure messages...</div>
-                ) : messages.length === 0 ? (
+                {messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 animate-fade-in-up">
                     <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center mb-4">
                       <MessageCircle className="text-indigo-500/70" size={28} />
