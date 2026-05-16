@@ -322,10 +322,10 @@ export default function MyResponsesPage() {
                                 }
 
                                 if (field.type === "text_with_fill_ins") {
-                                  const parts = (field.templateText || "").split("[BLANK]");
+                                  const parts = (field.templateText || "").split("___");
                                   const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
                                   return (
-                                    <div key={field.id} className="col-span-1 md:col-span-2 bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm" style={{ gridColumn: "1 / -1" }}>
+                                    <div key={field.id} className="col-span-1 md:col-span-2 bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm" style={{ gridColumn: "1 / -1", marginLeft: `${(field.indentation || 0) * 1.5}rem` }}>
                                       <div className="text-base text-gray-800 leading-relaxed">
                                         {parts.map((part: string, i: number) => (
                                           <span key={i}>

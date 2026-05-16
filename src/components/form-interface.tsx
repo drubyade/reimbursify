@@ -414,7 +414,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
         if (!field.required) continue;
         if (field.type === "signature_authority" || field.type === "subheading") continue; // Manager fills this, subheading has no input
         if (field.type === "text_with_fill_ins") {
-          const expectedBlanks = (field.templateText || "").split("[BLANK]").length - 1;
+          const expectedBlanks = (field.templateText || "").split("___").length - 1;
           const vals = formData[field.id] || [];
           if (expectedBlanks > 0 && (vals.length < expectedBlanks || Array.from({length: expectedBlanks}).some((_, i) => !vals[i]?.trim()))) {
             setError(`"${field.label}" requires all blanks to be filled`);
@@ -445,7 +445,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
         if (!field.required) continue;
         if (field.type === "signature_authority" || field.type === "subheading") continue;
         if (field.type === "text_with_fill_ins") {
-          const expectedBlanks = (field.templateText || "").split("[BLANK]").length - 1;
+          const expectedBlanks = (field.templateText || "").split("___").length - 1;
           const vals = formData[field.id] || [];
           if (expectedBlanks > 0 && (vals.length < expectedBlanks || Array.from({length: expectedBlanks}).some((_, i) => !vals[i]?.trim()))) {
             return false;
@@ -883,10 +883,10 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
           </div>
         );
       case "text_with_fill_ins":
-        const parts = (field.templateText || "Sample text [BLANK] goes here.").split("[BLANK]");
+        const parts = (field.templateText || "Sample text ___ goes here.").split("___");
         const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
         return (
-          <div style={{ lineHeight: "2.5", fontSize: "0.95rem", padding: "0.5rem", background: isReadOnly ? "transparent" : "#f8fafc", borderRadius: "0.5rem", border: isReadOnly ? "none" : "1px solid #e2e8f0" }}>
+          <div style={{ lineHeight: "2.5", fontSize: "0.95rem", padding: "0.5rem", paddingLeft: `${(field.indentation || 0) * 1.5}rem`, background: isReadOnly ? "transparent" : "#f8fafc", borderRadius: "0.5rem", border: isReadOnly ? "none" : "1px solid #e2e8f0" }}>
             {parts.map((part: string, i: number) => (
               <React.Fragment key={i}>
                 <span>{part}</span>

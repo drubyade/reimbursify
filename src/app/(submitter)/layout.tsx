@@ -52,7 +52,7 @@ export default function SubmitterLayout({
   const navigationItems = [
     { label: "My Trips", icon: Plane, href: "/trips", key: "trips", colorClass: "bg-blue-500" },
     { label: "My Groups", icon: Building2, href: "/groups", key: "groups", colorClass: "bg-purple-500" },
-    { label: "My Responses", icon: FileCheck, href: "/responses", key: "responses", colorClass: "bg-orange-600" },
+    { label: "Drafts and Submissions", icon: FileCheck, href: "/responses", key: "responses", colorClass: "bg-orange-600" },
     { label: "Messages", icon: MessageSquare, href: "/messages", key: "messages", colorClass: "bg-indigo-500" },
   ];
 
@@ -71,7 +71,7 @@ export default function SubmitterLayout({
   } else if (pathname?.startsWith("/messages")) {
     dynamicTitle = "Direct Messages";
   } else if (pathname?.startsWith("/responses")) {
-    dynamicTitle = "My Responses";
+    dynamicTitle = "Drafts and Submissions";
   } else if (pathname?.startsWith("/profile")) {
     dynamicTitle = "Payment Cards";
   }

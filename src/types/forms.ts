@@ -64,6 +64,7 @@ export interface FormField {
   
   // Advanced Form Layout
   templateText?: string;
+  indentation?: number;
   
   // Collaborator (for signature_authority fields)
   collaboratorId?: string;

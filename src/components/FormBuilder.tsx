@@ -606,6 +606,8 @@ function FieldEditor({
   canMoveDown,
   collaborators = [],
 }: FieldEditorProps) {
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
   // Use fallback so if NEXT js hot reload hasn't picked up the new types in forms.ts, it doesn't crash the sidebar
   const config = FIELD_CONFIGS[field.type] || {
     key: field.type,
@@ -697,28 +699,58 @@ function FieldEditor({
           {field.type === "text_with_fill_ins" && (
             <div className={styles.settingGroup}>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Template Text</label>
-              <button
-                type="button"
-                onClick={() => {
-                  const currentText = field.templateText || "";
-                  onUpdate({ templateText: currentText + "[BLANK]" });
-                }}
-                style={{
-                  padding: "0.4rem 0.8rem",
-                  background: "#e0e7ff",
-                  color: "#3730a3",
-                  border: "1px solid #c7d2fe",
-                  borderRadius: "0.4rem",
-                  fontSize: "0.8rem",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  marginBottom: "0.5rem",
-                  display: "inline-block"
-                }}
-              >
-                + Add space for short answer
-              </button>
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentText = field.templateText || "";
+                    const textarea = textRef.current;
+                    if (textarea) {
+                      const start = textarea.selectionStart;
+                      const end = textarea.selectionEnd;
+                      const newText = currentText.substring(0, start) + "___" + currentText.substring(end);
+                      onUpdate({ templateText: newText });
+                      
+                      setTimeout(() => {
+                        textarea.focus();
+                        textarea.setSelectionRange(start + 3, start + 3);
+                      }, 0);
+                    } else {
+                      onUpdate({ templateText: currentText + "___" });
+                    }
+                  }}
+                  style={{
+                    padding: "0.4rem 0.8rem",
+                    background: "#e0e7ff",
+                    color: "#3730a3",
+                    border: "1px solid #c7d2fe",
+                    borderRadius: "0.4rem",
+                    fontSize: "0.8rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add space for short answer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdate({ indentation: Math.max(0, (field.indentation || 0) - 1) })}
+                  style={{ padding: "0.4rem 0.8rem", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.8rem" }}
+                  title="Decrease Indent"
+                >
+                  ⇥-
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdate({ indentation: (field.indentation || 0) + 1 })}
+                  style={{ padding: "0.4rem 0.8rem", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.8rem" }}
+                  title="Increase Indent"
+                >
+                  ⇥+
+                </button>
+              </div>
               <textarea
+                ref={textRef}
                 value={field.templateText || ""}
                 onChange={(e) => onUpdate({ templateText: e.target.value })}
                 placeholder="Enter text here. Click the button above to insert a fill-in blank."
@@ -1190,9 +1222,9 @@ function FieldPreview({ field }: FieldPreviewProps) {
         </div>
       );
     case "text_with_fill_ins":
-      const parts = (field.templateText || "Sample text [BLANK] goes here.").split("[BLANK]");
+      const parts = (field.templateText || "Sample text ___ goes here.").split("___");
       return (
-        <div style={{ lineHeight: "2" }}>
+        <div style={{ lineHeight: "2", paddingLeft: `${(field.indentation || 0) * 1.5}rem` }}>
           {parts.map((part, i) => (
             <React.Fragment key={i}>
               <span>{part}</span>
