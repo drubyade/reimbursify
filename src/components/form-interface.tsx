@@ -882,7 +882,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
             {field.description && <p style={{ margin: "0.25rem 0 0 0", color: "#6b7280", fontSize: "0.9rem" }}>{field.description}</p>}
           </div>
         );
-      case "text_with_fill_ins":
+      case "text_with_fill_ins": {
         const parts = (field.templateText || "Sample text ___ goes here.").split("___");
         const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
         return (
@@ -908,6 +908,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
             ))}
           </div>
         );
+      }
       case "text":
       case "short_text":
       case "email":

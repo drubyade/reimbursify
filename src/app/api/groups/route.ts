@@ -60,42 +60,53 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // If ADMINISTRATOR, return groups they created
-    // If USER, return groups they joined
     const role = session.user.role;
+    const view = req.nextUrl.searchParams.get("view");
 
-    if (role === "ADMINISTRATOR") {
+    if (role === "ADMINISTRATOR" && view !== "joined") {
       const groups = await prisma.group.findMany({
         where: { createdById: session.user.id },
         include: { 
           _count: { select: { members: true } },
-          members: { where: { userId: session.user.id }, take: 1 }
+          members: { where: { userId: session.user.id }, take: 1 },
+          collaborators: { where: { userId: session.user.id }, take: 1 }
         },
         orderBy: { createdAt: 'desc' }
       });
       const groupsWithStatus = groups.map(g => {
         const mem = g.members[0];
-        const { members, ...rest } = g;
+        const { members, collaborators, ...rest } = g;
         return {
           ...rest,
           isFavorite: mem ? mem.isFavorite : false,
           isArchived: rest.isArchived,
           isGloballyArchived: rest.isArchived,
+          isCollaborator: collaborators.length > 0
         };
       });
       return NextResponse.json({ groups: groupsWithStatus });
     } else {
       const memberships = await prisma.groupMembership.findMany({
         where: { userId: session.user.id },
-        include: { group: true },
+        include: { 
+          group: {
+            include: {
+              collaborators: { where: { userId: session.user.id }, take: 1 }
+            }
+          } 
+        },
         orderBy: { joinedAt: 'desc' }
       });
-      const groups = memberships.map(m => ({
-        ...m.group,
-        isFavorite: m.isFavorite,
-        isArchived: m.group.isArchived || m.isArchived,
-        isGloballyArchived: m.group.isArchived,
-      }));
+      const groups = memberships.map(m => {
+        const { collaborators, ...groupRest } = m.group;
+        return {
+          ...groupRest,
+          isFavorite: m.isFavorite,
+          isArchived: m.group.isArchived || m.isArchived,
+          isGloballyArchived: m.group.isArchived,
+          isCollaborator: collaborators.length > 0
+        };
+      });
       return NextResponse.json({ groups });
     }
 

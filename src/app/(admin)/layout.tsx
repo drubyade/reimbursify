@@ -10,6 +10,7 @@ import {
   FileText, 
   FileCheck,
   MessageSquare,
+  Users,
   ChevronDown, 
   LogOut, 
   Menu,
@@ -48,6 +49,7 @@ export default function AdminLayout({
 
   const navigationItems = [
     { label: "Manage Groups", icon: Building2, href: "/admin/groups", key: "groups", colorClass: "bg-blue-500" },
+    { label: "Joined Groups", icon: Users, href: "/admin/joined-groups", key: "joined-groups", colorClass: "bg-rose-500" },
     { label: "Form Templates", icon: FileText, href: "/admin/forms", key: "forms", colorClass: "bg-purple-500" },
     { label: "Submissions", icon: FileCheck, href: "/admin/submissions", key: "submissions", colorClass: "bg-teal-500" },
     { label: "Messages", icon: MessageSquare, href: "/admin/messages", key: "messages", colorClass: "bg-indigo-500" },
@@ -56,6 +58,8 @@ export default function AdminLayout({
   let dynamicTitle = "Admin Dashboard";
   if (pathname?.startsWith("/admin/groups")) {
     dynamicTitle = "Manage Groups";
+  } else if (pathname?.startsWith("/admin/joined-groups")) {
+    dynamicTitle = "Joined Groups";
   } else if (pathname?.startsWith("/admin/forms")) {
     dynamicTitle = "Form Templates";
   } else if (pathname?.startsWith("/admin/submissions")) {

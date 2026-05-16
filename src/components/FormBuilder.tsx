@@ -1221,7 +1221,7 @@ function FieldPreview({ field }: FieldPreviewProps) {
           {field.description && <p style={{ margin: "0.25rem 0 0 0", color: "#6b7280", fontSize: "0.9rem" }}>{field.description}</p>}
         </div>
       );
-    case "text_with_fill_ins":
+    case "text_with_fill_ins": {
       const parts = (field.templateText || "Sample text ___ goes here.").split("___");
       return (
         <div style={{ lineHeight: "2", paddingLeft: `${(field.indentation || 0) * 1.5}rem` }}>
@@ -1235,6 +1235,7 @@ function FieldPreview({ field }: FieldPreviewProps) {
           ))}
         </div>
       );
+    }
     default:
       return <div>Unsupported field type</div>;
   }

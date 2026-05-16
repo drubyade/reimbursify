@@ -25,7 +25,15 @@ export async function GET(req: NextRequest, { params }: Params) {
       orderBy: { addedAt: "desc" },
     });
 
-    return NextResponse.json({ collaborators });
+    const members = await prisma.groupMembership.findMany({
+      where: { groupId },
+      include: {
+        user: { select: { id: true, name: true, email: true, username: true, role: true } },
+      },
+      orderBy: { joinedAt: "desc" },
+    });
+
+    return NextResponse.json({ collaborators, members });
   } catch (error) {
     console.error("Error fetching collaborators:", error);
     return NextResponse.json({ error: "Failed to fetch collaborators" }, { status: 500 });
@@ -51,15 +59,15 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Only the group HEAD can manage collaborators" }, { status: 403 });
     }
 
-    const { email } = await req.json();
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    const { username } = await req.json();
+    if (!username) {
+      return NextResponse.json({ error: "Username is required" }, { status: 400 });
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({ where: { email } });
+    // Find user by username
+    const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
-      return NextResponse.json({ error: "No user found with that email" }, { status: 404 });
+      return NextResponse.json({ error: "No user found with that username" }, { status: 404 });
     }
 
     // Don't allow adding yourself

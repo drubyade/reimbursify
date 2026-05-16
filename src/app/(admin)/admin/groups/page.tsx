@@ -125,39 +125,42 @@ export default function AdminGroupsPage() {
 
   // ── Collaborator Modal State ──
   const [collabModalGroupId, setCollabModalGroupId] = useState<string | null>(null);
-  const [collabList, setCollabList] = useState<Array<{ id: string; user: { id: string; name: string; email: string; role: string } }>>([]); 
-  const [collabEmail, setCollabEmail] = useState("");
+  const [collabList, setCollabList] = useState<Array<{ id: string; user: { id: string; name: string; email: string; username: string; role: string } }>>([]); 
+  const [memberList, setMemberList] = useState<Array<{ id: string; user: { id: string; name: string; email: string; username: string; role: string } }>>([]); 
+  const [collabUsername, setCollabUsername] = useState("");
   const [collabLoading, setCollabLoading] = useState(false);
   const [collabError, setCollabError] = useState<string | null>(null);
 
   const openCollabModal = async (groupId: string) => {
     setCollabModalGroupId(groupId);
     setCollabError(null);
-    setCollabEmail("");
+    setCollabUsername("");
     setCollabLoading(true);
     try {
       const res = await fetch(`/api/groups/${groupId}/collaborators`);
       if (res.ok) {
         const data = await res.json();
         setCollabList(data.collaborators || []);
+        setMemberList(data.members || []);
       }
     } catch (err) { console.error(err); }
     finally { setCollabLoading(false); }
   };
 
-  const addCollaborator = async () => {
-    if (!collabEmail.trim() || !collabModalGroupId) return;
+  const addCollaborator = async (usernameOverride?: string) => {
+    const targetUsername = usernameOverride || collabUsername.trim();
+    if (!targetUsername || !collabModalGroupId) return;
     setCollabError(null);
     try {
       const res = await fetch(`/api/groups/${collabModalGroupId}/collaborators`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: collabEmail.trim() }),
+        body: JSON.stringify({ username: targetUsername }),
       });
       const data = await res.json();
       if (res.ok) {
         setCollabList((prev) => [data.collaborator, ...prev]);
-        setCollabEmail("");
+        if (!usernameOverride) setCollabUsername("");
       } else {
         setCollabError(data.error || "Failed to add collaborator");
       }
@@ -584,16 +587,16 @@ export default function AdminGroupsPage() {
             {/* Add Collaborator */}
             <div className="flex gap-2 mb-4">
               <input
-                type="email"
-                value={collabEmail}
-                onChange={(e) => { setCollabEmail(e.target.value); setCollabError(null); }}
-                placeholder="Enter user email..."
+                type="text"
+                value={collabUsername}
+                onChange={(e) => { setCollabUsername(e.target.value); setCollabError(null); }}
+                placeholder="Enter exact username..."
                 className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all outline-none text-sm"
                 onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
               />
               <button
-                onClick={addCollaborator}
-                disabled={!collabEmail.trim()}
+                onClick={() => addCollaborator()}
+                disabled={!collabUsername.trim()}
                 className="px-4 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md"
               >
                 Add
@@ -622,7 +625,7 @@ export default function AdminGroupsPage() {
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{c.user.name || "Unnamed"}</p>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs text-gray-500 truncate">{c.user.email}</p>
+                          <p className="text-xs text-gray-500 truncate">@{c.user.username}</p>
                           <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                             c.user.role === "ADMINISTRATOR" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
                           }`}>
@@ -640,6 +643,41 @@ export default function AdminGroupsPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Existing Members List */}
+            {memberList.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Group Members</h3>
+                <div className="space-y-2">
+                  {memberList.map((m) => {
+                    const isCollab = collabList.some(c => c.user.id === m.user.id);
+                    return (
+                      <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                            {(m.user.name || m.user.email).charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{m.user.name || "Unnamed"}</p>
+                            <p className="text-xs text-gray-500 truncate">@{m.user.username}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => addCollaborator(m.user.username)}
+                          disabled={isCollab}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 ${
+                            isCollab 
+                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                              : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                          }`}
+                        >
+                          {isCollab ? "Added" : "Make Collab"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

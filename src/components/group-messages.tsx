@@ -40,7 +40,7 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function GroupMessages({ groupId }: { groupId: string }) {
+export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?: string }) {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -236,7 +236,10 @@ export function GroupMessages({ groupId }: { groupId: string }) {
           <div className="m-2 p-3 md:p-4 bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-2xl shadow-md text-white relative overflow-hidden shrink-0">
             <div className="flex items-center gap-2 mb-2.5">
               <button 
-                onClick={() => router.push(isAdmin ? "/admin/messages" : "/messages")}
+                onClick={() => {
+                  if (backUrl) router.push(backUrl);
+                  else router.push(isAdmin ? "/admin/messages" : "/messages");
+                }}
                 className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                 title="Back to messages list"
               >
