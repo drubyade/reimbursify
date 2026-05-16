@@ -164,6 +164,19 @@ export async function GET(req: NextRequest) {
         ...noMessageUsers.filter((u: any) => u.id !== headId),
       ];
 
+      // Mark delivered
+      await prisma.directMessage.updateMany({
+        where: {
+          groupId,
+          receiverId: session.user.id,
+          isDelivered: false,
+        },
+        data: {
+          isDelivered: true,
+          deliveredAt: new Date(),
+        },
+      });
+
       return NextResponse.json(sortedUsers);
     }
 

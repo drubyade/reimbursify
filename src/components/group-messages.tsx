@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { decryptAES } from "@/lib/encryption-client";
-import { Send, MessageCircle, User, Search, ArrowLeft } from "lucide-react";
+import { Send, MessageCircle, User, Search, ArrowLeft, Check, CheckCheck, Clock } from "lucide-react";
 
 interface DMUser {
   id: string;
@@ -143,7 +143,11 @@ export function GroupMessages({ groupId }: { groupId: string }) {
         `/api/direct-messages?groupId=${encodeURIComponent(groupId)}&otherId=${selectedUser.id}`
       );
       if (response.ok) {
-        setMessages(await response.json());
+        const data = await response.json();
+        setMessages((prev) => {
+          const pending = prev.filter((m) => m.status === "pending");
+          return [...data, ...pending];
+        });
       }
     } catch (error) {
       console.error(error);
@@ -152,6 +156,22 @@ export function GroupMessages({ groupId }: { groupId: string }) {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedUser) return;
+    const text = newMessage;
+    setNewMessage("");
+    
+    const tempId = `temp-${Date.now()}`;
+    const tempMsg = {
+      id: tempId,
+      senderId: session?.user?.id,
+      tempPlaintext: text,
+      status: "pending",
+    };
+    
+    setMessages((prev) => [...prev, tempMsg]);
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+
     try {
       setSending(true);
       const response = await fetch("/api/direct-messages", {
@@ -160,18 +180,21 @@ export function GroupMessages({ groupId }: { groupId: string }) {
         body: JSON.stringify({
           groupId,
           receiverId: selectedUser.id,
-          plaintext: newMessage,
+          plaintext: text,
           aesKey: "default-aes-key-256bit",
         }),
       });
 
       if (response.ok) {
-        setNewMessage("");
-        fetchMessages();
+        const savedMsg = await response.json();
+        setMessages((prev) => prev.map((m) => (m.id === tempId ? savedMsg : m)));
         fetchRecentUsers();
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
       }
     } catch (error) {
       console.error(error);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } finally {
       setSending(false);
     }
@@ -339,20 +362,34 @@ export function GroupMessages({ groupId }: { groupId: string }) {
                 ) : (
                   messages.map((msg: any) => {
                     const isMine = msg.senderId === session?.user?.id;
-                    const decryptedText = decryptMessage(msg.encryptedContent);
+                    const decryptedText = msg.tempPlaintext || decryptMessage(msg.encryptedContent);
                     return (
                       <div
                         key={msg.id}
                         className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fade-in-up`}
                       >
                         <div
-                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed shadow-sm ${
+                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed shadow-sm relative group ${
                             isMine
-                              ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-br-sm"
+                              ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-br-sm pr-12"
                               : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm"
                           }`}
                         >
                           {decryptedText}
+                          
+                          {isMine && (
+                            <span className="absolute bottom-1.5 right-2 flex items-center justify-end text-indigo-200">
+                              {msg.status === "pending" ? (
+                                <Clock size={12} className="opacity-80" />
+                              ) : msg.isRead ? (
+                                <CheckCheck size={14} className="text-blue-300 drop-shadow-sm" />
+                              ) : msg.isDelivered ? (
+                                <CheckCheck size={14} className="opacity-90" />
+                              ) : (
+                                <Check size={14} className="opacity-80" />
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                     );

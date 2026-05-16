@@ -71,6 +71,9 @@ model DirectMessage {
   isRead           Boolean    @default(false)
   readAt           DateTime?
   
+  isDelivered      Boolean    @default(false)
+  deliveredAt      DateTime?
+  
   // Diffie-Hellman Key Exchange fields for Group Join Requests
   isDHRequest      Boolean    @default(false)
   dhPayload        String?    // JSON with p, g, public key, etc.
