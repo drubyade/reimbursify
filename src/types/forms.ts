@@ -34,6 +34,11 @@ export type ExpenseType =
   | "Lodging"
   | "Registration"
   | "Visa"
+  | "LocalTransit"
+  | "FuelTolls"
+  | "Meals"
+  | "Communication"
+  | "Incidental"
   | "Other";
 
 export interface FormField {

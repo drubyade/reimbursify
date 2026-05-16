@@ -162,6 +162,74 @@ export const EXPENSE_TYPES = {
     ],
   },
 
+  // ── New Comprehensive Categories ──────────────────────────────────────────
+
+  LOCAL_TRANSIT: {
+    category: "Travel",
+    label: "Local Transit (Metro/Subway/Bus)",
+    icon: "🚇",
+    outlineIcon: "🚇",
+    proofFields: [
+      { key: "departureTime",  label: "Time (am/pm)",                 type: "text" },
+      { key: "from",           label: "From",                          type: "text" },
+      { key: "to",             label: "To",                            type: "text" },
+      { key: "distance",       label: "Distance (Kms)",                type: "number" },
+      { key: "class",          label: "Mode (Metro/Tram/Bus)",         type: "text" },
+      { key: "pnr",            label: "Ticket / Smart Card No.",       type: "text" },
+    ],
+  },
+
+  FUEL_TOLLS: {
+    category: "Travel",
+    label: "Fuel / Tolls / Parking",
+    icon: "⛽",
+    outlineIcon: "⛽",
+    proofFields: [
+      { key: "feeType",      label: "Type (Fuel/Toll/Parking)",       type: "text" },
+      { key: "details",      label: "Vehicle / Location Details",     type: "text" },
+      { key: "invoiceNo",    label: "Receipt / FASTag Ref No.",       type: "text" },
+    ],
+  },
+
+  MEALS: {
+    category: "Other",
+    label: "Official Meals / Per Diem",
+    icon: "🍱",
+    outlineIcon: "🍱",
+    proofFields: [
+      { key: "feeType",      label: "Type (Breakfast/Lunch/Dinner/Per Diem)", type: "text" },
+      { key: "merchant",     label: "Merchant / Restaurant Name",      type: "text" },
+      { key: "invoiceNo",    label: "Invoice / Receipt No.",           type: "text" },
+      { key: "details",      label: "Guest / Purpose Details",         type: "text" },
+    ],
+  },
+
+  COMMUNICATION: {
+    category: "Other",
+    label: "Internet / Phone / Comm.",
+    icon: "📱",
+    outlineIcon: "📱",
+    proofFields: [
+      { key: "feeType",      label: "Type (Internet/Phone/SIM)",       type: "text" },
+      { key: "merchant",     label: "Service Provider",                type: "text" },
+      { key: "invoiceNo",    label: "Invoice / Receipt No.",           type: "text" },
+      { key: "validFrom",    label: "Billing Period From",             type: "date" },
+      { key: "validTo",      label: "Billing Period To",               type: "date" },
+    ],
+  },
+
+  INCIDENTAL: {
+    category: "Other",
+    label: "Incidental (Tips/Laundry/Misc)",
+    icon: "💵",
+    outlineIcon: "💵",
+    proofFields: [
+      { key: "feeType",      label: "Expense Category (Laundry/Tips/Misc)", type: "text" },
+      { key: "details",      label: "Detailed Description",             type: "textarea" },
+      { key: "invoiceNo",    label: "Receipt No. (if available)",       type: "text" },
+    ],
+  },
+
   // ── Personal (not on official form, kept for reference) ───────────────────
 
   PERSONAL_STAY: {

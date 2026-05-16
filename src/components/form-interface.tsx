@@ -62,7 +62,7 @@ const EXPENSE_TABLE_TYPES = [
   "accommodation_cards_table",
   "other_expenses_table",
 ];
-const TRAVEL_TYPES = ["AIRWAYS", "TRAIN", "TAXI", "BUS", "OWN_CAR"];
+const TRAVEL_TYPES = ["AIRWAYS", "TRAIN", "TAXI", "BUS", "OWN_CAR", "LOCAL_TRANSIT", "FUEL_TOLLS"];
 const LODGING_TYPES = ["LODGING", "GUEST_HOUSE"];
 
 // ─── Table style helpers ──────────────────────────────────────────────────────
