@@ -64,7 +64,7 @@ export function ReimbursementsView({ onSelectForm, onViewSubmission }: Reimburse
       try {
         setError(null);
 
-        const formsRes = await fetch("/api/forms?active=true");
+        const formsRes = await fetch("/api/forms?active=true", { headers: { "Cache-Control": "no-cache" } });
         if (formsRes.ok) {
           const formsData = await formsRes.json();
           const fresh = formsData.forms || formsData;
@@ -72,7 +72,7 @@ export function ReimbursementsView({ onSelectForm, onViewSubmission }: Reimburse
           cacheForms(fresh).catch(() => {});
         }
 
-        const submissionsRes = await fetch("/api/submissions");
+        const submissionsRes = await fetch("/api/submissions", { headers: { "Cache-Control": "no-cache" } });
         if (submissionsRes.ok) {
           const submissionsData = await submissionsRes.json();
           const fresh = submissionsData.submissions || [];

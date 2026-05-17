@@ -29,9 +29,29 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    if (!senderMembership || !receiverMembership) {
+    // Check sender access (member, creator, or collaborator)
+    let senderHasAccess = !!senderMembership;
+    if (!senderHasAccess) {
+      const [isCreator, isCollab] = await Promise.all([
+        prisma.group.findFirst({ where: { id: groupId, createdById: session.user.id }, select: { id: true } }),
+        prisma.groupCollaborator.findFirst({ where: { groupId, userId: session.user.id }, select: { id: true } }),
+      ]);
+      senderHasAccess = !!(isCreator || isCollab);
+    }
+    
+    // Check receiver access (member, creator, or collaborator)
+    let receiverHasAccess = !!receiverMembership;
+    if (!receiverHasAccess) {
+      const [isCreator, isCollab] = await Promise.all([
+        prisma.group.findFirst({ where: { id: groupId, createdById: receiverId }, select: { id: true } }),
+        prisma.groupCollaborator.findFirst({ where: { groupId, userId: receiverId }, select: { id: true } }),
+      ]);
+      receiverHasAccess = !!(isCreator || isCollab);
+    }
+
+    if (!senderHasAccess || !receiverHasAccess) {
       return NextResponse.json(
-        { error: "Both users must be members of this group" },
+        { error: "Both users must have access to this group" },
         { status: 403 }
       );
     }
@@ -79,10 +99,17 @@ export async function GET(req: NextRequest) {
     });
 
     if (!membership) {
-      return NextResponse.json(
-        { error: "You are not a member of this group" },
-        { status: 403 }
-      );
+      // Check if user is group creator or collaborator
+      const [isCreator, isCollab] = await Promise.all([
+        prisma.group.findFirst({ where: { id: groupId, createdById: session.user.id }, select: { id: true } }),
+        prisma.groupCollaborator.findFirst({ where: { groupId, userId: session.user.id }, select: { id: true } }),
+      ]);
+      if (!isCreator && !isCollab) {
+        return NextResponse.json(
+          { error: "You are not a member of this group" },
+          { status: 403 }
+        );
+      }
     }
 
     if (!otherId) {
@@ -185,10 +212,17 @@ export async function GET(req: NextRequest) {
     });
 
     if (!otherMembership) {
-      return NextResponse.json(
-        { error: "The other user is not a member of this group" },
-        { status: 403 }
-      );
+      // Check if other user is group creator or collaborator
+      const [isCreator, isCollab] = await Promise.all([
+        prisma.group.findFirst({ where: { id: groupId, createdById: otherId }, select: { id: true } }),
+        prisma.groupCollaborator.findFirst({ where: { groupId, userId: otherId }, select: { id: true } }),
+      ]);
+      if (!isCreator && !isCollab) {
+        return NextResponse.json(
+          { error: "The other user is not a member of this group" },
+          { status: 403 }
+        );
+      }
     }
 
     const dms = await prisma.directMessage.findMany({

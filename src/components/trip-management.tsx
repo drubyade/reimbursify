@@ -52,7 +52,7 @@ export const TripManagement: React.FC<{
 
   const fetchTrips = async () => {
     try {
-      const res = await fetch("/api/trips");
+      const res = await fetch("/api/trips", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {
         const data = await res.json();
         setTrips(data.trips || []);

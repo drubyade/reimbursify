@@ -89,7 +89,8 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
       setSearching(true);
       try {
         const res = await fetch(
-          `/api/users/search?q=${encodeURIComponent(searchQuery)}&groupId=${encodeURIComponent(groupId)}`
+          `/api/users/search?q=${encodeURIComponent(searchQuery)}&groupId=${encodeURIComponent(groupId)}`,
+          { headers: { "Cache-Control": "no-cache" } }
         );
         if (res.ok) {
           const data = await res.json();
@@ -107,7 +108,7 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
 
   const fetchRecentUsers = async () => {
     try {
-      const res = await fetch(`/api/direct-messages?groupId=${encodeURIComponent(groupId)}`);
+      const res = await fetch(`/api/direct-messages?groupId=${encodeURIComponent(groupId)}`, { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {
         const data = await res.json();
         setRecentUsers(data);
@@ -140,7 +141,8 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
     if (!selectedUser?.id) return;
     try {
       const response = await fetch(
-        `/api/direct-messages?groupId=${encodeURIComponent(groupId)}&otherId=${selectedUser.id}`
+        `/api/direct-messages?groupId=${encodeURIComponent(groupId)}&otherId=${selectedUser.id}`,
+        { headers: { "Cache-Control": "no-cache" } }
       );
       if (response.ok) {
         const data = await response.json();

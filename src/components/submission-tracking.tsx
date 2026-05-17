@@ -51,7 +51,7 @@ export function SubmissionTracking({ tripId }: SubmissionTrackingProps) {
     try {
       setLoading(true);
       const url = tripId ? `/api/submissions?tripId=${tripId}` : "/api/submissions";
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
 
       if (!response.ok) {
         throw new Error("Failed to fetch submissions");

@@ -289,7 +289,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
   const fetchUserTrips = async () => {
     setLoadingTrips(true);
     try {
-      const res = await fetch("/api/trips");
+      const res = await fetch("/api/trips", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) { const d = await res.json(); setUserTrips(d.trips || []); }
     } catch (e) { console.error(e); }
     finally { setLoadingTrips(false); }
@@ -352,7 +352,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
 
     // ── Refresh from network ──────────────────────────────────────────
     try {
-      const res = await fetch(`/api/trips/${id}`);
+      const res = await fetch(`/api/trips/${id}`, { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {
         const d = await res.json();
         const rawExpenses = d.trip?.expenses || d.expenses || [];
@@ -377,7 +377,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
 
   const fetchUserProfile = async () => {
     try {
-      const res = await fetch("/api/profile");
+      const res = await fetch("/api/profile", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) { const d = await res.json(); setUserProfile(d.user || d || {}); }
     } catch (_) {}
   };

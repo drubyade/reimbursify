@@ -29,10 +29,17 @@ export async function GET(req: NextRequest) {
     });
 
     if (!membership) {
-      return NextResponse.json(
-        { error: "You are not a member of this group" },
-        { status: 403 }
-      );
+      // Check if user is group creator or collaborator
+      const [isCreator, isCollab] = await Promise.all([
+        prisma.group.findFirst({ where: { id: groupId, createdById: session.user.id }, select: { id: true } }),
+        prisma.groupCollaborator.findFirst({ where: { groupId, userId: session.user.id }, select: { id: true } }),
+      ]);
+      if (!isCreator && !isCollab) {
+        return NextResponse.json(
+          { error: "You are not a member of this group" },
+          { status: 403 }
+        );
+      }
     }
 
     const users = await prisma.user.findMany({

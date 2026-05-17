@@ -35,7 +35,7 @@ export const FormSelection: React.FC<FormSelectionProps> = ({
 
   const fetchForms = async () => {
     try {
-      const res = await fetch("/api/forms?active=true");
+      const res = await fetch("/api/forms?active=true", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {
         const data = await res.json();
         setForms(data.forms || []);
