@@ -47,7 +47,6 @@ export const AdminApprovalPanel: React.FC = () => {
   const fetchSubmissions = async () => {
     try {
       // Only show loading spinner on very first load, not on polls
-      if (submissions.length === 0) setLoading(true);
 
       if (filter === "needs_attestation") {
         const res = await fetch("/api/submissions?needsAttestation=true", { headers: { "Cache-Control": "no-cache" } });

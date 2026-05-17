@@ -40,7 +40,6 @@ export default function ProfilePage() {
 
     const fetchPaymentCards = async () => {
       try {
-        if (paymentCards.length === 0) setLoading(true);
         const cardsResponse = await fetch("/api/profile/payment-cards", { headers: { "Cache-Control": "no-cache" } });
         if (cardsResponse.ok) {
           const cardsData = await cardsResponse.json();

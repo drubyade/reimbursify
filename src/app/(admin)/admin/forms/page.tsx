@@ -127,7 +127,6 @@ function FormManagementContent() {
 
   const fetchGroups = async () => {
     try {
-      if (groups.length === 0) setLoading(true);
       const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Failed to fetch groups");
       const data = await res.json();
@@ -143,7 +142,6 @@ function FormManagementContent() {
 
   const fetchForms = async (groupId: string) => {
     try {
-      if (forms.length === 0) setLoading(true);
       const res = await fetch(`/api/forms-builder?groupId=${groupId}`, { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Failed to fetch forms");
       const data = await res.json();

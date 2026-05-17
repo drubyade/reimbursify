@@ -59,7 +59,6 @@ export default function AdminGroupsPage() {
   };
 
   const fetchGroups = async () => {
-    if (groups.length === 0) setLoading(true);
     try {
       const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
       if (res.ok) {

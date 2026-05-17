@@ -39,7 +39,6 @@ export default function AnalyticsPage() {
 
     const fetchStats = async () => {
       try {
-        if (!stats) setLoading(true);
         // Fetch profile
         fetch("/api/profile", { headers: { "Cache-Control": "no-cache" } })
           .then(res => res.json())

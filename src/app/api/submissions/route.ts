@@ -1,4 +1,5 @@
 
+// Force TS Server re-evaluation for Prisma Client
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -16,6 +17,11 @@ export async function GET(req: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { groupMemberships: true },
+    });
+
+    // Fetch collaborations separately to avoid IDE Prisma include cache errors
+    const userCollaborations = await prisma.groupCollaborator.findMany({
+      where: { userId: session.user.id }
     });
 
     if (!user) {
@@ -143,9 +149,12 @@ export async function GET(req: NextRequest) {
     });
 
     // Filter submissions and obscure statuses based on roles
+    const collabGroupIds = new Set(userCollaborations.map(c => c.groupId));
     const filtered = submissions.filter((s) => {
-      if (user.role === "ADMINISTRATOR") {
-        // Reimbursifier can see all submissions in their institute, EXCEPT drafts of others
+      const isAdminOrCollab = user.role === "ADMINISTRATOR" || collabGroupIds.has(s.groupId);
+      
+      if (isAdminOrCollab) {
+        // Reimbursifier/Collaborator can see all submissions in their institute/group, EXCEPT drafts of others
         if (s.status === "DRAFT" && s.userId !== session.user?.id) {
           return false;
         }
@@ -155,15 +164,16 @@ export async function GET(req: NextRequest) {
     }).map((s) => {
       let displayStatus = s.status;
 
-      if (user.role === "SUBMITTER" || s.userId === session.user?.id) {
-        // Submitter can't know when reimbursifier reviewed it
+      if (user.role === "SUBMITTER" && s.userId === session.user?.id) {
+        // Submitter can't know when reimbursifier reviewed their own form
         if (s.status === "REVIEWED") {
           displayStatus = "SUBMITTED";
         }
       } 
       
-      if (user.role === "ADMINISTRATOR" && s.userId !== session.user?.id) {
-        // Reimbursifier can't know which forms are settled
+      const isAdminOrCollab = user.role === "ADMINISTRATOR" || collabGroupIds.has(s.groupId);
+      if (isAdminOrCollab && s.userId !== session.user?.id) {
+        // Reimbursifier/Collaborator can't know which forms are settled
         if (s.status === "SETTLED") {
           displayStatus = "REVIEWED";
         }

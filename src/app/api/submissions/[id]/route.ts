@@ -1,5 +1,6 @@
 "use server";
 
+// Force TS Server re-evaluation for Prisma Client
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -32,11 +33,6 @@ export async function GET(req: NextRequest, { params }: Params) {
             },
           },
         },
-        attestations: {
-          include: {
-            collaborator: { select: { id: true, name: true, email: true } },
-          },
-        },
       },
     });
 
@@ -46,6 +42,20 @@ export async function GET(req: NextRequest, { params }: Params) {
         { status: 404 }
       );
     }
+
+    // Fetch attestations separately to avoid IDE Prisma include cache errors
+    const attestations = await prisma.signatureAttestation.findMany({
+      where: { submissionId: id },
+      include: {
+        collaborator: { select: { id: true, name: true, email: true } }
+      }
+    });
+
+    // Attach to submission object
+    const fullSubmission = {
+      ...submission,
+      attestations
+    };
 
     // Verify ownership or admin access
     const user = await prisma.user.findUnique({
@@ -60,8 +70,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     const isAdmin = user.role === "ADMINISTRATOR";
 
     // Check if user is a collaborator for this group
-    const isCollaborator = await prisma.groupCollaborator.findUnique({
-      where: { groupId_userId: { groupId: submission.groupId, userId: session.user.id } },
+    const isCollaborator = await prisma.groupCollaborator.findFirst({
+      where: { groupId: submission.groupId, userId: session.user.id },
     });
 
     if (!isOwner && !isAdmin && !isCollaborator) {
@@ -89,7 +99,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ 
       submission: {
-        ...submission,
+        ...fullSubmission,
         status: displayStatus,
         _dbStatus: submission.status
       } 
@@ -125,14 +135,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
-    // Verify ownership or Admin
+    // Verify ownership, Admin, or Collaborator
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
     });
     const isOwner = submission.userId === session.user.id;
     const isAdmin = user?.role === "ADMINISTRATOR";
 
-    if (!isOwner && !isAdmin) {
+    const isCollaborator = await prisma.groupCollaborator.findFirst({
+      where: { groupId: submission.groupId, userId: session.user.id },
+    });
+
+    if (!isOwner && !isAdmin && !isCollaborator) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -229,7 +243,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
 
     // Only allow deletion of draft submissions
-    if (submission.status !== "Draft") {
+    if (submission.status !== "DRAFT") {
       return NextResponse.json(
         { error: "Only draft submissions can be deleted" },
         { status: 409 }
