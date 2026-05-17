@@ -17,6 +17,11 @@ export function PwaInstallBanner() {
       setShowInstallBanner(true);
     };
 
+    if (typeof window !== 'undefined' && (window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+      setShowInstallBanner(true);
+    }
+
     window.addEventListener("beforeinstallprompt", handler);
 
     return () => {
@@ -36,6 +41,7 @@ export function PwaInstallBanner() {
     // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
     setShowInstallBanner(false);
+    if (typeof window !== 'undefined') (window as any).deferredPrompt = null;
   };
 
   if (!showInstallBanner) return null;

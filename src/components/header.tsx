@@ -32,6 +32,12 @@ export function Header({ title, showAuthButtons = true, actionButtons = [], hide
       setDeferredPrompt(e);
       setShowInstall(true);
     };
+
+    if (typeof window !== 'undefined' && (window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+      setShowInstall(true);
+    }
+
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
@@ -43,6 +49,7 @@ export function Header({ title, showAuthButtons = true, actionButtons = [], hide
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
         setShowInstall(false);
+        if (typeof window !== 'undefined') (window as any).deferredPrompt = null;
       }
     } else {
       alert("To install Reimbursify: open your browser's menu (or the Share menu on iOS) and tap 'Add to Home Screen'.");
