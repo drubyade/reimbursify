@@ -126,35 +126,47 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
     return () => clearInterval(interval);
   }, [groupId]);
 
+  // Fetch messages for the selected user with proper cancellation
   useEffect(() => {
     if (!selectedUser) return;
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 500);
-    return () => clearInterval(interval);
+
+    // Clear previous user's messages immediately to prevent cross-user bleed
+    setMessages([]);
+
+    const controller = new AbortController();
+    const userId = selectedUser.id; // capture at effect time
+
+    const fetchMsgs = async () => {
+      try {
+        const response = await fetch(
+          `/api/direct-messages?groupId=${encodeURIComponent(groupId)}&otherId=${userId}`,
+          { headers: { "Cache-Control": "no-cache" }, signal: controller.signal }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setMessages((prev) => {
+            const pending = prev.filter((m) => m.status === "pending");
+            return [...data, ...pending];
+          });
+        }
+      } catch (error: any) {
+        if (error.name === "AbortError") return; // expected on user switch
+        console.error(error);
+      }
+    };
+
+    fetchMsgs();
+    const interval = setInterval(fetchMsgs, 500);
+
+    return () => {
+      controller.abort(); // cancel any in-flight fetches for previous user
+      clearInterval(interval);
+    };
   }, [selectedUser?.id, groupId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const fetchMessages = async () => {
-    if (!selectedUser?.id) return;
-    try {
-      const response = await fetch(
-        `/api/direct-messages?groupId=${encodeURIComponent(groupId)}&otherId=${selectedUser.id}`,
-        { headers: { "Cache-Control": "no-cache" } }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setMessages((prev) => {
-          const pending = prev.filter((m) => m.status === "pending");
-          return [...data, ...pending];
-        });
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedUser) return;
