@@ -955,7 +955,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
       case "yesno":
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {(field.options || (field.type === "yesno" ? ["Yes", "No"] : [])).map((opt: string) => (
+            {(field.options && field.options.length > 0 ? field.options : (field.type === "yesno" ? ["Yes", "No"] : [])).map((opt: string) => (
               <label key={opt} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isReadOnly ? "default" : "pointer", fontSize: "0.95rem" }}>
                 <input disabled={isReadOnly} type="radio" name={field.id} value={opt} checked={formData[field.id] === opt} onChange={e => handleFieldChange(field.id, e.target.value)} style={{ accentColor: "#0077b6" }} />
                 {opt}
@@ -966,7 +966,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
       case "checkbox":
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {(field.options || []).map((opt: string) => {
+            {(field.options && field.options.length > 0 ? field.options : []).map((opt: string) => {
               const vals = Array.isArray(formData[field.id]) ? formData[field.id] : [];
               return (
                 <label key={opt} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isReadOnly ? "default" : "pointer", fontSize: "0.95rem" }}>
@@ -987,7 +987,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
         return (
           <select disabled={isReadOnly} value={formData[field.id] || ""} onChange={e => handleFieldChange(field.id, e.target.value)} style={{ ...inputStyle, background: isReadOnly ? "#fafafa" : "white" }}>
             <option value="" disabled>Select an option</option>
-            {(field.options || []).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+            {(field.options && field.options.length > 0 ? field.options : []).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         );
       case "linear_scale":
