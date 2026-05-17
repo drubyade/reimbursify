@@ -358,9 +358,10 @@ async function buildNetworkFirst(request) {
     if (response.ok) {
       const cache = await caches.open(BUILD_CACHE);
       cache.put(request, response.clone()).catch(() => {});
-      return response;
     }
-  } catch (_) {
+    return response;
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
     // network failed
   }
 
@@ -393,9 +394,10 @@ async function apiNetworkFirst(request) {
       }
       // Notify pages that fresh data arrived
       broadcast({ type: "CACHE_UPDATED", url: key, payload: data });
-      return response;
     }
+    return response;
   } catch (err) {
+    if (err.name === 'AbortError') throw err;
     // network failed, fallback to cache below
   }
 
