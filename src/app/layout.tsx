@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <ServiceWorkerRegister />
+          <AutoRefresh />
           {children}
         </AuthProvider>
       </body>
