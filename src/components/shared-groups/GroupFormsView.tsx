@@ -25,21 +25,21 @@ interface GroupInfo {
 
 export function GroupFormsView({ groupId, baseRoute = "/groups" }: { groupId: string, baseRoute?: string }) {
   const router = useRouter();
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  // Stop polling when a form is open — prevents re-renders that unmount FormInterface
   const { data: groupData, loading: loadingGroup, error: groupError } = useDataSync<any>({
-    url: `/api/groups/${groupId}`,
+    url: selectedFormId ? null : `/api/groups/${groupId}`,
   });
   const group = groupData?.group || null;
   const error = groupError ? "Group not found or you don't have access." : null;
 
   const { data: formsData, loading: loadingForms } = useDataSync<any>({
-    url: `/api/forms?active=true&groupId=${groupId}`,
+    url: selectedFormId ? null : `/api/forms?active=true&groupId=${groupId}`,
   });
   const forms: FormTemplate[] = formsData?.forms || [];
   const loading = loadingGroup || loadingForms;
-
-  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   useEffect(() => {

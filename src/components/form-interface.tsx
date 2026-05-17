@@ -187,7 +187,7 @@ export const FormInterface: React.FC<FormInterfaceProps> = ({
 
     // ── Then fetch fresh from network ──────────────────────────────────
     try {
-      const res = await fetch(`/api/forms/${formId}`);
+      const res = await fetch(`/api/forms/${formId}`, { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Failed to fetch form");
       const data = await res.json();
       if (data.form && typeof data.form.templateSchema === "string") {
