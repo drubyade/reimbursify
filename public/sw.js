@@ -7,7 +7,7 @@
 //   • Connectivity     : poll every 10 s; flush queue the moment we come online
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION   = "v13";         // bump to force fresh install
+const CACHE_VERSION   = "v14";         // bump to force fresh install
 const STATIC_CACHE    = `reimb-static-${CACHE_VERSION}`;
 const BUILD_CACHE     = `reimb-build-${CACHE_VERSION}`;   // for _next/static/**
 const API_CACHE       = `reimb-api-${CACHE_VERSION}`;
@@ -214,9 +214,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ── _next/data/** — stale-while-revalidate (RSC payloads) ──────────────
+  // ── _next/data/** — Network-First (RSC payloads) ──────────────
   if (url.pathname.startsWith("/_next/data/")) {
-    event.respondWith(buildStaleWhileRevalidate(request));
+    event.respondWith(buildNetworkFirst(request));
     return;
   }
 
@@ -319,10 +319,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ── Cacheable API GET: stale-while-revalidate ─────────────────────────────
+  // ── Cacheable API GET: Network-First ─────────────────────────────
   const isCacheableApi = CACHEABLE_API_PATTERNS.some((p) => p.test(url.pathname));
   if (url.pathname.startsWith("/api/") && isCacheableApi) {
-    event.respondWith(apiStaleWhileRevalidate(request));
+    event.respondWith(apiNetworkFirst(request));
     return;
   }
 
@@ -350,26 +350,22 @@ async function buildCacheFirst(request) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// stale-while-revalidate for _next/data/** (RSC route data)
+// Network-First for _next/data/** (RSC route data)
 // ─────────────────────────────────────────────────────────────────────────────
-async function buildStaleWhileRevalidate(request) {
-  const cached = await caches.match(request);
-
-  const networkPromise = fetch(request.clone()).then(async (response) => {
+async function buildNetworkFirst(request) {
+  try {
+    const response = await fetch(request.clone());
     if (response.ok) {
       const cache = await caches.open(BUILD_CACHE);
       cache.put(request, response.clone()).catch(() => {});
+      return response;
     }
-    return response;
-  }).catch(() => null);
-
-  if (cached) {
-    networkPromise.catch(() => {});
-    return cached;
+  } catch (_) {
+    // network failed
   }
 
-  const net = await networkPromise;
-  if (net) return net;
+  const cached = await caches.match(request);
+  if (cached) return cached;
 
   return new Response(JSON.stringify({}), {
     status: 200,
@@ -378,14 +374,14 @@ async function buildStaleWhileRevalidate(request) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// stale-while-revalidate for API routes (uses IndexedDB so data survives clear)
+// Network-First for API routes (uses IndexedDB so data survives clear)
 // ─────────────────────────────────────────────────────────────────────────────
-async function apiStaleWhileRevalidate(request) {
+async function apiNetworkFirst(request) {
   const key = request.url;
-  const isNoCache = request.headers.get("Cache-Control") === "no-cache";
 
-  // Fire network request in background immediately
-  const networkPromise = fetch(request.clone()).then(async (response) => {
+  // Try network first
+  try {
+    const response = await fetch(request.clone());
     if (response.ok) {
       const clone = response.clone();
       const data  = await clone.json().catch(() => null);
@@ -397,29 +393,15 @@ async function apiStaleWhileRevalidate(request) {
       }
       // Notify pages that fresh data arrived
       broadcast({ type: "CACHE_UPDATED", url: key, payload: data });
+      return response;
     }
-    return response;
-  }).catch(() => null);
-
-  // If the client explicitly asked for no-cache (e.g. 500ms background polling),
-  // skip the cache-first approach and wait for network directly, but still update cache.
-  // This acts like a background hard refresh for the frontend polling.
-  if (isNoCache && navigator.onLine) {
-    const netResponse = await networkPromise;
-    if (netResponse) return netResponse;
+  } catch (err) {
+    // network failed, fallback to cache below
   }
 
-  // Return cached version immediately if available
+  // Fallback to Cache API
   const cached = await caches.match(request);
-  if (cached) {
-    // Still wait for network to update cache, but don't block UI
-    networkPromise.catch(() => {});
-    return cached;
-  }
-
-  // No cache → wait for network
-  const networkResponse = await networkPromise;
-  if (networkResponse) return networkResponse;
+  if (cached) return cached;
 
   // Truly offline fallback from IndexedDB
   let idbData = null;
