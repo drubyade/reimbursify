@@ -7,7 +7,7 @@
 //   • Connectivity     : poll every 10 s; flush queue the moment we come online
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION   = "v14";         // bump to force fresh install
+const CACHE_VERSION   = "v15";         // bump to force fresh install
 const STATIC_CACHE    = `reimb-static-${CACHE_VERSION}`;
 const BUILD_CACHE     = `reimb-build-${CACHE_VERSION}`;   // for _next/static/**
 const API_CACHE       = `reimb-api-${CACHE_VERSION}`;
@@ -319,7 +319,43 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ── Cacheable API GET: Network-First ─────────────────────────────
+  // ── API GET with no-cache: pass straight to network (client-side polling) ──
+  if (url.pathname.startsWith("/api/") && request.headers.get("Cache-Control") === "no-cache") {
+    event.respondWith(
+      fetch(request).then(async (response) => {
+        // Still update cache in background for offline fallback
+        if (response.ok) {
+          try {
+            const clone = response.clone();
+            const data = await clone.json().catch(() => null);
+            if (data !== null) {
+              await putApiCache(request.url, data);
+              const cache = await caches.open(API_CACHE);
+              cache.put(request, response.clone()).catch(() => {});
+            }
+          } catch (_) {}
+        }
+        return response;
+      }).catch(async () => {
+        // Only if truly offline, fall back to cache
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        let idbData = null;
+        try { idbData = await getApiCache(request.url); } catch (_) {}
+        if (idbData) {
+          return new Response(JSON.stringify(idbData.data), {
+            headers: { "Content-Type": "application/json", "X-Offline-Cache": "true" },
+          });
+        }
+        return new Response(JSON.stringify({ error: "Offline" }), {
+          status: 503, headers: { "Content-Type": "application/json" },
+        });
+      })
+    );
+    return;
+  }
+
+  // ── Cacheable API GET: Network-First (no special headers) ─────────────────
   const isCacheableApi = CACHEABLE_API_PATTERNS.some((p) => p.test(url.pathname));
   if (url.pathname.startsWith("/api/") && isCacheableApi) {
     event.respondWith(apiNetworkFirst(request));
