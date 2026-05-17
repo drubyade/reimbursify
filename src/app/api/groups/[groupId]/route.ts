@@ -26,13 +26,27 @@ export async function GET(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    // Verify user is a member
+    // Verify user has access (member, creator, or collaborator)
     const membership = await prisma.groupMembership.findUnique({
       where: { groupId_userId: { groupId: groupId, userId: session.user.id } },
     });
 
     if (!membership) {
-      return NextResponse.json({ error: "You are not a member of this group" }, { status: 403 });
+      // Check if user is the group creator
+      const isCreator = group.id ? await prisma.group.findFirst({
+        where: { id: groupId, createdById: session.user.id },
+        select: { id: true },
+      }) : null;
+      
+      // Check if user is a collaborator
+      const isCollaborator = await prisma.groupCollaborator.findFirst({
+        where: { groupId: groupId, userId: session.user.id },
+        select: { id: true },
+      });
+      
+      if (!isCreator && !isCollaborator) {
+        return NextResponse.json({ error: "You are not a member of this group" }, { status: 403 });
+      }
     }
 
     return NextResponse.json({ group });

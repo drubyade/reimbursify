@@ -101,7 +101,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const groupIds = user.groupMemberships.map(m => m.groupId);
+    const memberGroupIds = user.groupMemberships.map(m => m.groupId);
+    const memberCollabIds = userCollaborations.map(c => c.groupId);
+    
+    // Also include groups user created
+    const createdGroups = await prisma.group.findMany({
+      where: { createdById: session.user.id },
+      select: { id: true },
+    });
+    
+    const groupIds = [
+      ...new Set([
+        ...memberGroupIds,
+        ...memberCollabIds,
+        ...createdGroups.map(g => g.id),
+      ])
+    ];
     const whereClause: any = {
       groupId: { in: groupIds },
     };
@@ -232,7 +247,23 @@ export async function POST(req: NextRequest) {
     });
 
     const userGroupIds = user.groupMemberships.map(m => m.groupId);
-    if (!template || !userGroupIds.includes(template.groupId)) {
+    
+    let hasAccess = template && userGroupIds.includes(template.groupId);
+    
+    if (template && !hasAccess) {
+      // Check if user is the group creator or collaborator
+      const isCreator = await prisma.group.findFirst({
+        where: { id: template.groupId, createdById: session.user.id },
+        select: { id: true },
+      });
+      const isCollaborator = await prisma.groupCollaborator.findFirst({
+        where: { groupId: template.groupId, userId: session.user.id },
+        select: { id: true },
+      });
+      hasAccess = !!(isCreator || isCollaborator);
+    }
+    
+    if (!template || !hasAccess) {
       return NextResponse.json(
         { error: "Form template not found" },
         { status: 404 }

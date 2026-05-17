@@ -37,10 +37,23 @@ export async function GET(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    // Verify user belongs to the form's group
+    // Verify user has access to the form's group (member, creator, or collaborator)
     const userGroupIds = user.groupMemberships.map(m => m.groupId);
+    
     if (!userGroupIds.includes(form.groupId)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      // Check if user is the group creator
+      const isCreator = await prisma.group.findFirst({
+        where: { id: form.groupId, createdById: session.user.id },
+      });
+      
+      // Check if user is a collaborator
+      const isCollaborator = await prisma.groupCollaborator.findFirst({
+        where: { groupId: form.groupId, userId: session.user.id },
+      });
+      
+      if (!isCreator && !isCollaborator) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
     }
 
     return NextResponse.json({ form });

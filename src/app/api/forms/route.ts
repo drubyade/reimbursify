@@ -22,7 +22,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const groupIds = user.groupMemberships.map(m => m.groupId);
+    const memberGroupIds = user.groupMemberships.map(m => m.groupId);
+    
+    // Also include groups where user is creator or collaborator
+    const createdGroups = await prisma.group.findMany({
+      where: { createdById: session.user.id },
+      select: { id: true },
+    });
+    const collabGroups = await prisma.groupCollaborator.findMany({
+      where: { userId: session.user.id },
+      select: { groupId: true },
+    });
+    
+    const groupIds = [
+      ...new Set([
+        ...memberGroupIds,
+        ...createdGroups.map(g => g.id),
+        ...collabGroups.map(c => c.groupId),
+      ])
+    ];
 
     // Get query parameters for filtering
     const searchParams = req.nextUrl.searchParams;
@@ -34,7 +52,7 @@ export async function GET(req: NextRequest) {
       groupId: { in: groupIds },
     };
 
-    // If filtering by specific group, verify user is a member
+    // If filtering by specific group, verify user has access
     if (filterGroupId) {
       if (!groupIds.includes(filterGroupId)) {
         return NextResponse.json({ error: "Not a member of this group" }, { status: 403 });
