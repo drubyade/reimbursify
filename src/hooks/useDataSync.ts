@@ -58,8 +58,8 @@ export function useDataSync<T>({
   const resolvedKey = syncKey ?? url ?? "default";
   const [currentKey, setCurrentKey] = useState(resolvedKey);
 
-  // ── Stable refs — assigned synchronously every render ─────────────────────
   const dataHashRef = useRef<number | null>(null);
+  const busyRef = useRef(false);
 
   if (currentKey !== resolvedKey) {
     setCurrentKey(resolvedKey);
@@ -67,9 +67,8 @@ export function useDataSync<T>({
     setLoading(true);
     setError(null);
     dataHashRef.current = null;
+    busyRef.current = false;
   }
-
-  const busyRef = useRef(false);
   const mountedRef = useRef(true);
   const urlRef = useRef(url);
   const fetcherRef = useRef(fetcher);

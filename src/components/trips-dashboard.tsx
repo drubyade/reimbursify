@@ -143,7 +143,7 @@ export const TripsDashboard = forwardRef((_, ref) => {
 
   const fetchTripExpensesData = async () => {
     if (!selectedTripId) return [];
-    const res = await fetch(`/api/trips/${selectedTripId}/expenses`);
+    const res = await fetch(`/api/trips/${selectedTripId}/expenses`, { headers: { "Cache-Control": "no-cache" } });
     if (!res.ok) throw new Error("Failed to fetch expenses");
     const data = await res.json();
     return (data.expenses || []).map((e: any) => ({ ...e, tripId: selectedTripId }));
