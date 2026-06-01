@@ -24,7 +24,7 @@ export default function MessagesPage() {
     fetchGroups();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") fetchGroups();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(id);
   }, []);
 

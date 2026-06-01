@@ -115,7 +115,7 @@ function FormManagementContent() {
     fetchGroups();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") fetchGroups();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(id);
   }, [session?.user?.id]);
 
@@ -124,7 +124,7 @@ function FormManagementContent() {
       fetchForms(selectedGroupId);
       const id = setInterval(() => {
         if (document.visibilityState === "visible") fetchForms(selectedGroupId);
-      }, 5000);
+      }, 2000);
       return () => clearInterval(id);
     }
   }, [selectedGroupId]);

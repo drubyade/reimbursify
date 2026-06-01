@@ -41,7 +41,7 @@ export const AdminApprovalPanel: React.FC = () => {
     fetchSubmissions();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") fetchSubmissions();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(id);
   }, [filter]);
 

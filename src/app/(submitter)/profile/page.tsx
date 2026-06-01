@@ -55,7 +55,7 @@ export default function ProfilePage() {
     fetchPaymentCards();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") fetchPaymentCards();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(id);
   }, [session?.user?.id]);
 

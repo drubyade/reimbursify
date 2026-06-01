@@ -8,11 +8,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
  * Data flow:
  *   1. Mount → read IndexedDB cache → render instantly
  *   2. Fire network fetch → compare hash → update state only if changed
- *   3. Poll every 5s (when online/visible) for real-time consistency
+ *   3. Poll every 2s (when online/visible) for real-time consistency
  *   4. On reconnect or visibility gain → immediate revalidation
  */
 
-const DEFAULT_POLL_MS = 5000;
+const DEFAULT_POLL_MS = 2000;
 
 // Fast string hash (djb2) to avoid keeping large JSON strings in memory
 function fastHash(str: string): number {

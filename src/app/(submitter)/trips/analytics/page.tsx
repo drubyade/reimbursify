@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
     fetchStats();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") fetchStats();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(id);
   }, [session?.user?.id]);
 

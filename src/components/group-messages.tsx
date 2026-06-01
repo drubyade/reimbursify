@@ -124,7 +124,7 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
     fetchRecentUsers();
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") fetchRecentUsers();
-    }, 2000);
+    }, 500);
     return () => clearInterval(interval);
   }, [groupId]);
 
@@ -160,7 +160,7 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
     fetchMsgs();
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") fetchMsgs();
-    }, 2000);
+    }, 500);
 
     return () => {
       controller.abort(); // cancel any in-flight fetches for previous user
