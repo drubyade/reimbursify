@@ -39,8 +39,9 @@ export const AdminApprovalPanel: React.FC = () => {
 
   useEffect(() => {
     fetchSubmissions();
-    // Poll every 500ms for real-time consistency
-    const id = setInterval(fetchSubmissions, 500);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchSubmissions();
+    }, 5000);
     return () => clearInterval(id);
   }, [filter]);
 

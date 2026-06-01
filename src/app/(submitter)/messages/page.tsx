@@ -22,7 +22,9 @@ export default function MessagesPage() {
 
   useEffect(() => {
     fetchGroups();
-    const id = setInterval(fetchGroups, 500);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchGroups();
+    }, 5000);
     return () => clearInterval(id);
   }, []);
 

@@ -53,7 +53,9 @@ export default function ProfilePage() {
     };
 
     fetchPaymentCards();
-    const id = setInterval(fetchPaymentCards, 500);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchPaymentCards();
+    }, 5000);
     return () => clearInterval(id);
   }, [session?.user?.id]);
 

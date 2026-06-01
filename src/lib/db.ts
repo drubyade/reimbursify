@@ -232,17 +232,17 @@ export async function saveReimbursementsLocally(
   const transaction = db.transaction(["reimbursements"], "readwrite");
   const store = transaction.objectStore("reimbursements");
 
-  for (const item of reimbursements) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const item of reimbursements) {
+      store.put({
         ...item,
         syncStatus: "synced",
         localOnly: false,
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 
   // Update last sync time
   await setMetadata("lastSync", new Date().toISOString());
@@ -673,17 +673,17 @@ export async function saveFormsLocally(forms: ExpenseForm[]): Promise<void> {
   const transaction = db.transaction(["expenseForms"], "readwrite");
   const store = transaction.objectStore("expenseForms");
 
-  for (const form of forms) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const form of forms) {
+      store.put({
         ...form,
         syncStatus: "synced",
         localOnly: false,
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 export async function saveExpensesLocally(expenses: Expense[]): Promise<void> {
@@ -691,17 +691,17 @@ export async function saveExpensesLocally(expenses: Expense[]): Promise<void> {
   const transaction = db.transaction(["expenses"], "readwrite");
   const store = transaction.objectStore("expenses");
 
-  for (const expense of expenses) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const expense of expenses) {
+      store.put({
         ...expense,
         syncStatus: "synced",
         localOnly: false,
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 // Get pending sync items for forms and expenses
@@ -774,16 +774,16 @@ export async function saveTripsLocally(trips: Trip[]): Promise<void> {
   const transaction = db.transaction(["trips"], "readwrite");
   const store = transaction.objectStore("trips");
 
-  for (const trip of trips) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const trip of trips) {
+      store.put({
         ...trip,
         syncStatus: "synced",
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 // ===== PAYMENT CARDS (NEW) =====
@@ -828,16 +828,16 @@ export async function savePaymentCardsLocally(cards: PaymentCard[]): Promise<voi
   const transaction = db.transaction(["paymentCards"], "readwrite");
   const store = transaction.objectStore("paymentCards");
 
-  for (const card of cards) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const card of cards) {
+      store.put({
         ...card,
         syncStatus: "synced",
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 // ===== FORM TEMPLATES (NEW) =====
@@ -883,16 +883,16 @@ export async function saveFormTemplatesLocally(templates: FormTemplate[]): Promi
   const transaction = db.transaction(["formTemplates"], "readwrite");
   const store = transaction.objectStore("formTemplates");
 
-  for (const template of templates) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const template of templates) {
+      store.put({
         ...template,
         syncStatus: "synced",
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 // ===== SUBMISSIONS (NEW) =====
@@ -938,14 +938,14 @@ export async function saveSubmissionsLocally(submissions: Submission[]): Promise
   const transaction = db.transaction(["submissions"], "readwrite");
   const store = transaction.objectStore("submissions");
 
-  for (const submission of submissions) {
-    await new Promise((resolve, reject) => {
-      const request = store.put({
+  await new Promise<void>((resolve, reject) => {
+    for (const submission of submissions) {
+      store.put({
         ...submission,
         syncStatus: "synced",
       });
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  }
+    }
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }

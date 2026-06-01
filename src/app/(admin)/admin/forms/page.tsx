@@ -113,14 +113,18 @@ function FormManagementContent() {
   useEffect(() => {
     if (!session?.user?.id) return;
     fetchGroups();
-    const id = setInterval(fetchGroups, 500);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchGroups();
+    }, 5000);
     return () => clearInterval(id);
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (selectedGroupId) {
       fetchForms(selectedGroupId);
-      const id = setInterval(() => fetchForms(selectedGroupId), 500);
+      const id = setInterval(() => {
+        if (document.visibilityState === "visible") fetchForms(selectedGroupId);
+      }, 5000);
       return () => clearInterval(id);
     }
   }, [selectedGroupId]);

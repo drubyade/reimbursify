@@ -7,12 +7,21 @@ import { useState, useEffect, useCallback, useRef } from "react";
  *
  * Data flow:
  *   1. Mount → read IndexedDB cache → render instantly
- *   2. Fire network fetch → compare → update state only if changed
- *   3. Poll every 500ms (when online) for real-time consistency
- *   4. On reconnect → immediate revalidation
+ *   2. Fire network fetch → compare hash → update state only if changed
+ *   3. Poll every 5s (when online/visible) for real-time consistency
+ *   4. On reconnect or visibility gain → immediate revalidation
  */
 
-const DEFAULT_POLL_MS = 500;
+const DEFAULT_POLL_MS = 5000;
+
+// Fast string hash (djb2) to avoid keeping large JSON strings in memory
+function fastHash(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return hash >>> 0;
+}
 
 interface UseDataSyncOptions<T> {
   url?: string | null;
@@ -20,6 +29,7 @@ interface UseDataSyncOptions<T> {
   cacheFetcher?: () => Promise<T | null>;
   cacheUpdater?: (data: T) => Promise<void>;
   pollInterval?: number;
+  focusRevalidate?: boolean;
 }
 
 interface UseDataSyncReturn<T> {
@@ -44,7 +54,7 @@ export function useDataSync<T>({
   const [error, setError] = useState<Error | null>(null);
 
   // ── Stable refs — assigned synchronously every render ─────────────────────
-  const dataStrRef = useRef("");
+  const dataHashRef = useRef<number | null>(null);
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   const urlRef = useRef(url);
@@ -84,10 +94,10 @@ export function useDataSync<T>({
         result = await res.json();
       }
 
-      // Deep-compare: only update React state when payload actually changed
-      const newStr = JSON.stringify(result);
-      if (newStr !== dataStrRef.current && mountedRef.current) {
-        dataStrRef.current = newStr;
+      // Hash comparison: only update React state when payload actually changed
+      const newHash = fastHash(JSON.stringify(result));
+      if (newHash !== dataHashRef.current && mountedRef.current) {
+        dataHashRef.current = newHash;
         setData(result);
         cacheUpdaterRef.current?.(result).catch(() => {});
       }
@@ -118,8 +128,8 @@ export function useDataSync<T>({
     if (cf) {
       cf().then((cached) => {
         if (cached != null && !cancelled && mountedRef.current) {
-          const cachedStr = JSON.stringify(cached);
-          dataStrRef.current = cachedStr;
+          const cachedHash = fastHash(JSON.stringify(cached));
+          dataHashRef.current = cachedHash;
           setData(cached);
           setLoading(false);
         }
@@ -129,14 +139,43 @@ export function useDataSync<T>({
     // 2. Fire first network fetch (does not block polling start)
     doFetch();
 
-    // 3. Start 500ms polling unconditionally
-    if (pollInterval > 0) {
-      intervalId = setInterval(doFetch, pollInterval);
+    // 3. Start polling conditionally
+    const startPolling = () => {
+      if (pollInterval > 0 && !intervalId) {
+        intervalId = setInterval(() => {
+          if (document.visibilityState === 'visible') {
+            doFetch();
+          }
+        }, pollInterval);
+      }
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      startPolling();
     }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        doFetch(); // Revalidate immediately on focus
+        startPolling();
+      } else {
+        stopPolling(); // Pause polling when hidden
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
-      if (intervalId) clearInterval(intervalId);
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [hasSource, pollInterval, doFetch]);
 
@@ -149,8 +188,8 @@ export function useDataSync<T>({
 
   // ── Optimistic mutate ─────────────────────────────────────────────────────
   const mutate = useCallback((newData: T, updateCache = true) => {
-    const newStr = JSON.stringify(newData);
-    dataStrRef.current = newStr;
+    const newHash = fastHash(JSON.stringify(newData));
+    dataHashRef.current = newHash;
     setData(newData);
     setLoading(false);
     if (updateCache) cacheUpdaterRef.current?.(newData).catch(() => {});

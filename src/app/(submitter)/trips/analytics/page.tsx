@@ -108,7 +108,9 @@ export default function AnalyticsPage() {
     };
 
     fetchStats();
-    const id = setInterval(fetchStats, 500);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchStats();
+    }, 5000);
     return () => clearInterval(id);
   }, [session?.user?.id]);
 

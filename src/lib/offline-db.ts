@@ -124,10 +124,23 @@ async function remove(store: string, key: IDBValidKey): Promise<void> {
   });
 }
 
+async function putBatch(store: string, items: any[]): Promise<void> {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, "readwrite");
+    const os = tx.objectStore(store);
+    for (const item of items) {
+      os.put(item);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TRIPS
 // ─────────────────────────────────────────────────────────────────────────────
-export const cacheTrips    = (trips: any[])           => Promise.all(trips.map((t) => put(STORES.TRIPS, { ...t, _cachedAt: Date.now() })));
+export const cacheTrips    = (trips: any[])           => putBatch(STORES.TRIPS, trips.map((t) => ({ ...t, _cachedAt: Date.now() })));
 export const getCachedTrips = ()                       => getAll(STORES.TRIPS);
 export const getCachedTrip  = (id: string)             => getOne(STORES.TRIPS, id);
 export const cacheSingleTrip = (trip: any)             => put(STORES.TRIPS, { ...trip, _cachedAt: Date.now() });
@@ -135,7 +148,7 @@ export const cacheSingleTrip = (trip: any)             => put(STORES.TRIPS, { ..
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPENSES
 // ─────────────────────────────────────────────────────────────────────────────
-export const cacheExpenses          = (exps: any[])    => Promise.all(exps.map((e) => put(STORES.EXPENSES, { ...e, _cachedAt: Date.now() })));
+export const cacheExpenses          = (exps: any[])    => putBatch(STORES.EXPENSES, exps.map((e) => ({ ...e, _cachedAt: Date.now() })));
 export const getCachedExpensesByTrip = (tripId: string) => getAllByIndex(STORES.EXPENSES, "tripId", tripId);
 export const getCachedExpense        = (id: string)     => getOne(STORES.EXPENSES, id);
 export const cacheSingleExpense      = (exp: any)       => put(STORES.EXPENSES, { ...exp, _cachedAt: Date.now() });
@@ -144,28 +157,28 @@ export const removeCachedExpense     = (id: string)     => remove(STORES.EXPENSE
 // ─────────────────────────────────────────────────────────────────────────────
 // FORMS
 // ─────────────────────────────────────────────────────────────────────────────
-export const cacheForms    = (forms: any[])   => Promise.all(forms.map((f) => put(STORES.FORMS, { ...f, _cachedAt: Date.now() })));
+export const cacheForms    = (forms: any[])   => putBatch(STORES.FORMS, forms.map((f) => ({ ...f, _cachedAt: Date.now() })));
 export const getCachedForms = ()              => getAll(STORES.FORMS);
 export const getCachedForm  = (id: string)    => getOne(STORES.FORMS, id);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUBMISSIONS
 // ─────────────────────────────────────────────────────────────────────────────
-export const cacheSubmissions    = (subs: any[]) => Promise.all(subs.map((s) => put(STORES.SUBMISSIONS, { ...s, _cachedAt: Date.now() })));
+export const cacheSubmissions    = (subs: any[]) => putBatch(STORES.SUBMISSIONS, subs.map((s) => ({ ...s, _cachedAt: Date.now() })));
 export const getCachedSubmissions = ()            => getAll(STORES.SUBMISSIONS);
 export const cacheSingleSubmission = (sub: any)  => put(STORES.SUBMISSIONS, { ...sub, _cachedAt: Date.now() });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GROUPS
 // ─────────────────────────────────────────────────────────────────────────────
-export const cacheGroups    = (groups: any[]) => Promise.all(groups.map((g) => put(STORES.GROUPS, { ...g, _cachedAt: Date.now() })));
+export const cacheGroups    = (groups: any[]) => putBatch(STORES.GROUPS, groups.map((g) => ({ ...g, _cachedAt: Date.now() })));
 export const getCachedGroups = ()            => getAll(STORES.GROUPS);
 export const cacheSingleGroup = (group: any)  => put(STORES.GROUPS, { ...group, _cachedAt: Date.now() });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MESSAGES
 // ─────────────────────────────────────────────────────────────────────────────
-export const cacheMessages         = (msgs: any[])     => Promise.all(msgs.map((m) => put(STORES.MESSAGES, { ...m, _cachedAt: Date.now() })));
+export const cacheMessages         = (msgs: any[])     => putBatch(STORES.MESSAGES, msgs.map((m) => ({ ...m, _cachedAt: Date.now() })));
 export const getCachedMessages     = ()                => getAll(STORES.MESSAGES);
 export const getCachedMessagesByGroup = (groupId: string) => getAllByIndex(STORES.MESSAGES, "groupId", groupId);
 export const cacheSingleMessage    = (msg: any)        => put(STORES.MESSAGES, { ...msg, _cachedAt: Date.now() });
@@ -177,24 +190,24 @@ export async function purgeExpired(): Promise<void> {
   const now = Date.now();
   const stores = [STORES.TRIPS, STORES.EXPENSES, STORES.FORMS, STORES.SUBMISSIONS, STORES.GROUPS, STORES.MESSAGES];
   const db = await getDB();
-  for (const storeName of stores) {
-    try {
-      const tx = db.transaction(storeName, "readwrite");
+  try {
+    const tx = db.transaction(stores, "readwrite");
+    for (const storeName of stores) {
       const store = tx.objectStore(storeName);
       const req = store.getAll();
-      await new Promise<void>((resolve) => {
-        req.onsuccess = () => {
-          for (const item of req.result || []) {
-            if (item._cachedAt && (now - item._cachedAt) > CACHE_TTL_MS) {
-              store.delete(item.id || item.url);
-            }
+      req.onsuccess = () => {
+        for (const item of req.result || []) {
+          if (item._cachedAt && (now - item._cachedAt) > CACHE_TTL_MS) {
+            store.delete(item.id || item.url);
           }
-          resolve();
-        };
-        req.onerror = () => resolve();
-      });
-    } catch (_) {}
-  }
+        }
+      };
+    }
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch (_) {}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
