@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { decryptAES } from "@/lib/encryption-client";
+import { cacheMessages, getCachedMessagesByGroup } from "@/lib/offline-db";
 import { Send, MessageCircle, User, Search, ArrowLeft, Check, CheckCheck, Clock } from "lucide-react";
 
 interface DMUser {
@@ -58,6 +59,8 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(`reimbursify_chat_${groupId}`);
@@ -137,6 +140,21 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
 
     const controller = new AbortController();
     const userId = selectedUser.id; // capture at effect time
+    
+    // Pre-load from cache for instant display
+    getCachedMessagesByGroup(groupId).then((cached) => {
+      if (controller.signal.aborted) return;
+      const userMsgs = cached.filter((m: any) => m.senderId === userId || m.receiverId === userId);
+      if (userMsgs.length > 0) {
+        setMessages((prev) => {
+          if (prev.length === 0) {
+            userMsgs.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            return userMsgs;
+          }
+          return prev;
+        });
+      }
+    }).catch(() => {});
 
     const fetchMsgs = async () => {
       try {
@@ -146,6 +164,7 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
         );
         if (response.ok) {
           const data = await response.json();
+          cacheMessages(data).catch(() => {});
           setMessages((prev) => {
             const pending = prev.filter((m) => m.status === "pending");
             return [...data, ...pending];
@@ -169,7 +188,24 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
   }, [selectedUser?.id, groupId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    let shouldScroll = false;
+    
+    // First load
+    if (prevMessagesLengthRef.current === 0 && messages.length > 0) {
+      shouldScroll = true;
+    } else if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      // If we're within 150px of the bottom, auto-scroll to show new messages
+      if (scrollHeight - scrollTop - clientHeight < 150) {
+        shouldScroll = true;
+      }
+    }
+
+    if (shouldScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -371,7 +407,7 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                 {messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 animate-fade-in-up">
                     <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center mb-4">
