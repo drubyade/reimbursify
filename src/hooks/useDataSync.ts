@@ -30,6 +30,7 @@ interface UseDataSyncOptions<T> {
   cacheUpdater?: (data: T) => Promise<void>;
   pollInterval?: number;
   focusRevalidate?: boolean;
+  syncKey?: string | null;
 }
 
 interface UseDataSyncReturn<T> {
@@ -47,14 +48,27 @@ export function useDataSync<T>({
   cacheFetcher,
   cacheUpdater,
   pollInterval = DEFAULT_POLL_MS,
+  syncKey,
 }: UseDataSyncOptions<T>): UseDataSyncReturn<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const resolvedKey = syncKey ?? url ?? "default";
+  const [currentKey, setCurrentKey] = useState(resolvedKey);
+
   // ── Stable refs — assigned synchronously every render ─────────────────────
   const dataHashRef = useRef<number | null>(null);
+
+  if (currentKey !== resolvedKey) {
+    setCurrentKey(resolvedKey);
+    setData(null);
+    setLoading(true);
+    setError(null);
+    dataHashRef.current = null;
+  }
+
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   const urlRef = useRef(url);
@@ -170,22 +184,21 @@ export function useDataSync<T>({
       }
     };
 
+    const handleOnline = () => {
+      busyRef.current = false;
+      doFetch();
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
 
     return () => {
       cancelled = true;
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
     };
-  }, [hasSource, pollInterval, doFetch]);
-
-  // ── Reconnect handler ─────────────────────────────────────────────────────
-  useEffect(() => {
-    const h = () => { busyRef.current = false; doFetch(); };
-    window.addEventListener("online", h);
-    return () => window.removeEventListener("online", h);
-  }, [doFetch]);
-
+  }, [hasSource, currentKey, pollInterval, doFetch]);
   // ── Optimistic mutate ─────────────────────────────────────────────────────
   const mutate = useCallback((newData: T, updateCache = true) => {
     const newHash = fastHash(JSON.stringify(newData));

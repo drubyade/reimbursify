@@ -156,6 +156,7 @@ export const TripsDashboard = forwardRef((_, ref) => {
       return cached.length > 0 ? cached as Expense[] : null;
     } : undefined,
     cacheUpdater: async (data) => { await cacheExpenses(data); },
+    syncKey: selectedTripId,
   });
   const tripExpenses = syncTripExpenses ?? [];
   const setTripExpenses = (updater: Expense[] | ((prev: Expense[]) => Expense[])) => {
