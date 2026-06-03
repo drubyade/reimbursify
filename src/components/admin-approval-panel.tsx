@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Download, CheckCircle, AlertCircle, Clock, ChevronDown, ChevronUp, LayoutGrid, List, Search, FileText, Send, ListFilter } from "lucide-react";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedApiResponse, cacheApiResponse } from "@/lib/offline-db";
 import { FormInterface } from "./form-interface";
 
 interface Submission {
@@ -25,9 +27,7 @@ interface Expense {
 }
 
 export const AdminApprovalPanel: React.FC = () => {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [expenses, setExpenses] = useState<Record<string, Expense[]>>({});
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "reviewed" | "needs_attestation">("all");
   const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
@@ -36,44 +36,48 @@ export const AdminApprovalPanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [sortBy, setSortBy] = useState("date-desc");
-
-  useEffect(() => {
-    fetchSubmissions();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchSubmissions();
-    }, 2000);
-    return () => clearInterval(id);
-  }, [filter]);
-
-  const fetchSubmissions = async () => {
-    try {
-      // Only show loading spinner on very first load, not on polls
-
-      if (filter === "needs_attestation") {
-        const res = await fetch("/api/submissions?needsAttestation=true", { headers: { "Cache-Control": "no-cache" } });
-        if (res.ok) {
-          const data = await res.json();
-          setSubmissions(data.submissions || []);
-        }
-      } else {
-        const url = new URL("/api/submissions", window.location.href);
-        if (filter === "pending") {
-          url.searchParams.set("status", "SUBMITTED");
-        } else if (filter === "reviewed") {
-          url.searchParams.set("status", "REVIEWED");
-        }
-
-        const res = await fetch(url.toString(), { headers: { "Cache-Control": "no-cache" } });
-        if (res.ok) {
-          const data = await res.json();
-          setSubmissions(data.submissions || []);
-        }
+  const fetchSubmissionsData = async () => {
+    if (filter === "needs_attestation") {
+      const res = await fetch("/api/submissions?needsAttestation=true", { headers: { "Cache-Control": "no-cache" } });
+      if (res.ok) {
+        const data = await res.json();
+        return { submissions: data.submissions || [] };
       }
-    } catch (error) {
-      console.error("Error fetching submissions:", error);
-    } finally {
-      setLoading(false);
+    } else {
+      const url = new URL("/api/submissions", window.location.href);
+      if (filter === "pending") {
+        url.searchParams.set("status", "SUBMITTED");
+      } else if (filter === "reviewed") {
+        url.searchParams.set("status", "REVIEWED");
+      }
+
+      const res = await fetch(url.toString(), { headers: { "Cache-Control": "no-cache" } });
+      if (res.ok) {
+        const data = await res.json();
+        return { submissions: data.submissions || [] };
+      }
     }
+    return { submissions: [] };
+  };
+
+  const { data: syncData, loading: syncLoading, mutate: setSyncData, revalidate: fetchSubmissions } = useDataSync<{ submissions: Submission[] }>({
+    fetcher: fetchSubmissionsData,
+    cacheFetcher: async () => {
+      const cached = await getCachedApiResponse(`/admin-submissions-${filter}`);
+      return cached ? cached : null;
+    },
+    cacheUpdater: async (data) => {
+      if (data) await cacheApiResponse(`/admin-submissions-${filter}`, data);
+    },
+    syncKey: `admin-submissions-${filter}`,
+  });
+
+  const submissions = syncData?.submissions || [];
+  const loading = syncLoading && !syncData;
+
+  const setSubmissions = (updater: Submission[] | ((prev: Submission[]) => Submission[])) => {
+    const nextSubmissions = typeof updater === 'function' ? updater(submissions) : updater;
+    setSyncData({ submissions: nextSubmissions }, true);
   };
 
   const fetchSubmissionExpenses = async (submissionId: string, tripId?: string) => {

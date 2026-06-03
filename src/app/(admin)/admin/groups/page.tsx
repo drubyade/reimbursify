@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedGroups, cacheGroups } from "@/lib/offline-db";
 import { Users, Archive, Plus, LayoutGrid, List, Calendar, Building2, ArrowLeft, UserPlus, Trash2, X } from "lucide-react";
 
 interface Group {
@@ -19,9 +21,25 @@ interface Group {
 }
 
 export default function AdminGroupsPage() {
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+  const { data: syncData, loading: syncLoading, mutate: setSyncData, revalidate: fetchGroups } = useDataSync<{ groups: Group[] }>({
+    url: "/api/groups",
+    cacheFetcher: async () => {
+      const cached = await getCachedGroups();
+      return cached.length > 0 ? { groups: cached } : null;
+    },
+    cacheUpdater: async (data) => {
+      if (data?.groups) await cacheGroups(data.groups);
+    },
+  });
+
+  const groups = syncData?.groups || [];
+  const loading = syncLoading && !syncData;
+
+  const setGroups = (updater: Group[] | ((prev: Group[]) => Group[])) => {
+    const nextGroups = typeof updater === 'function' ? updater(groups) : updater;
+    setSyncData({ groups: nextGroups }, true);
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
@@ -36,7 +54,7 @@ export default function AdminGroupsPage() {
   useEffect(() => {
     const savedViewMode = localStorage.getItem("reimbursify_admin_group_view_mode");
     if (savedViewMode === "grid" || savedViewMode === "list") {
-      setViewMode(savedViewMode);
+      setViewMode(savedViewMode as any);
     }
 
     const savedSearchQuery = localStorage.getItem("reimbursify_admin_groups_search");
@@ -47,31 +65,11 @@ export default function AdminGroupsPage() {
 
     const savedShowArchived = localStorage.getItem("reimbursify_admin_groups_show_archived");
     if (savedShowArchived === "true") setShowArchived(true);
-
-    fetchGroups();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchGroups();
-    }, 2000);
-    return () => clearInterval(id);
   }, []);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
     setViewMode(mode);
     localStorage.setItem("reimbursify_admin_group_view_mode", mode);
-  };
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
-      if (res.ok) {
-        const data = await res.json();
-        setGroups(data.groups || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch groups", error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleCreateGroup = async (e: React.FormEvent) => {

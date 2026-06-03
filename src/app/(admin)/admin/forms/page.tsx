@@ -7,6 +7,8 @@ import Link from "next/link";
 import { FormSection } from "@/types/forms";
 import { FormBuilder } from "@/components/FormBuilder";
 import { OfflineGuard } from "@/components/OfflineGuard";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedGroups, cacheGroups, getCachedApiResponse, cacheApiResponse } from "@/lib/offline-db";
 import { Users, Plus, LayoutGrid, List, FileText, ArrowLeft, Building2 } from "lucide-react";
 
 interface AdminGroup {
@@ -44,11 +46,7 @@ function FormManagementContent() {
   const router = useRouter();
 
   // Data states
-  const [groups, setGroups] = useState<AdminGroup[]>([]);
-  const [forms, setForms] = useState<FormTemplate[]>([]);
-  
   // UI states
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   // View states
@@ -110,52 +108,41 @@ function FormManagementContent() {
     }
   }, [selectedGroupId, editingFormId, showCreateForm, groupViewMode, formViewMode]);
 
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    fetchGroups();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchGroups();
-    }, 2000);
-    return () => clearInterval(id);
-  }, [session?.user?.id]);
+  const { data: syncGroups, loading: loadingGroups } = useDataSync<{ groups: AdminGroup[] }>({
+    url: "/api/groups",
+    cacheFetcher: async () => {
+      const cached = await getCachedGroups();
+      return cached.length > 0 ? { groups: cached } : null;
+    },
+    cacheUpdater: async (data) => {
+      if (data?.groups) await cacheGroups(data.groups);
+    },
+  });
 
-  useEffect(() => {
-    if (selectedGroupId) {
-      fetchForms(selectedGroupId);
-      const id = setInterval(() => {
-        if (document.visibilityState === "visible") fetchForms(selectedGroupId);
-      }, 2000);
-      return () => clearInterval(id);
-    }
-  }, [selectedGroupId]);
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
-      if (!res.ok) throw new Error("Failed to fetch groups");
-      const data = await res.json();
-      // Only show unarchived groups
-      setGroups((data.groups || []).filter((g: AdminGroup) => !g.isArchived));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchForms = async (groupId: string) => {
-    try {
-      const res = await fetch(`/api/forms-builder?groupId=${groupId}`, { headers: { "Cache-Control": "no-cache" } });
+  const { data: syncForms, loading: loadingForms, mutate: setSyncForms, revalidate: fetchForms } = useDataSync<{ forms: FormTemplate[] }>({
+    fetcher: selectedGroupId ? async () => {
+      const res = await fetch(`/api/forms-builder?groupId=${selectedGroupId!}`, { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Failed to fetch forms");
       const data = await res.json();
-      setForms(data.forms || []);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
+      return { forms: data.forms || [] };
+    } : undefined,
+    cacheFetcher: selectedGroupId ? async () => {
+      const cached = await getCachedApiResponse(`/admin-forms-${selectedGroupId!}`);
+      return cached ? cached : null;
+    } : undefined,
+    cacheUpdater: async (data) => {
+      if (data && selectedGroupId) await cacheApiResponse(`/admin-forms-${selectedGroupId!}`, data);
+    },
+    syncKey: selectedGroupId ? `admin-forms-${selectedGroupId}` : undefined,
+  });
+
+  const groups = (syncGroups?.groups || []).filter((g) => !g.isArchived);
+  const forms = syncForms?.forms || [];
+  const loading = loadingGroups && !syncGroups;
+
+  const setForms = (updater: FormTemplate[] | ((prev: FormTemplate[]) => FormTemplate[])) => {
+    const nextForms = typeof updater === 'function' ? updater(forms) : updater;
+    setSyncForms({ forms: nextForms }, true);
   };
 
   const handleCreateForm = async () => {
@@ -238,7 +225,7 @@ function FormManagementContent() {
       if (!response.ok) throw new Error("Failed to save form");
       
       setEditingFormId(null);
-      await fetchForms(selectedGroupId); // refresh forms
+      await fetchForms(); // refresh forms
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save form");
     }
