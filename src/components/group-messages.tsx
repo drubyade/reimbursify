@@ -381,13 +381,13 @@ const autoScrollEnabled = useRef(true);
 
         {/* Main Chat Area */}
         <div 
-          className={`${!selectedUser ? "hidden md:flex" : "flex"} flex-1 flex-col bg-indigo-50/80 relative`}
+          className={`${!selectedUser ? "hidden md:flex" : "flex"} flex-1 flex-col bg-green-50/80 relative`}
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2314b8a6' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}
         >
           {selectedUser ? (
             <>
               {/* Chat Header */}
-              <div className="m-2 px-5 py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-700 rounded-2xl shadow-sm flex items-center gap-3 z-10 sticky top-2 overflow-hidden text-white">
+              <div className="m-2 px-5 py-3.5 bg-gradient-to-r from-green-500 to-green-700 rounded-2xl shadow-sm flex items-center gap-3 z-10 sticky top-2 overflow-hidden text-white">
                 <button
                   onClick={() => setSelectedUser(null)}
                   className="md:hidden p-1.5 -ml-2 hover:bg-white/20 rounded-lg transition-colors shrink-0"
