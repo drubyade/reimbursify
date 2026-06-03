@@ -61,6 +61,7 @@ export function GroupMessages({ groupId, backUrl }: { groupId: string, backUrl?:
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(0);
+const autoScrollEnabled = useRef(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(`reimbursify_chat_${groupId}`);

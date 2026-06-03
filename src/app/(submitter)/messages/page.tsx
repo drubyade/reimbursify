@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useDataSync } from "@/hooks/useDataSync";
 import { getCachedGroups, cacheGroups } from "@/lib/offline-db";
@@ -19,6 +19,21 @@ export default function MessagesPage() {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
   const [searchQuery, setSearchQuery] = useState("");
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const autoScrollEnabled = useRef(true);
+
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      autoScrollEnabled.current = distanceFromBottom < 150;
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const { data: syncGroups, loading } = useDataSync<{ groups: Group[] }>({
     url: "/api/groups",
     cacheFetcher: async () => {
@@ -53,7 +68,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50/50 px-6 pb-6 md:px-8 md:pb-8 pt-0 h-full w-full">
+    <div ref={chatContainerRef} className="flex-1 overflow-y-auto bg-gray-50/50 px-6 pb-6 md:px-8 md:pb-8 pt-0 h-full w-full">
       <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
         {/* Hero Header */}
         <div className="sticky top-0 z-50 bg-gray-50 pt-3 pb-5 -mx-6 md:-mx-8 px-6 md:px-8">
