@@ -317,10 +317,13 @@ export function GroupListView({ baseRoute = "/groups", apiQuery = "" }: { baseRo
                   return (
                     <div
                       key={group.id}
-                      className={`rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden animate-fade-in-up cursor-pointer group/card flex flex-col md:flex-row ${
+                      className={`rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden animate-fade-in-up flex flex-col md:flex-row ${
                         group.isCollaborator ? "border-2 border-[var(--primary)] bg-[var(--primary-lightest)] shadow-md" : "border border-gray-200"
-                      }`}
-                      onClick={() => window.location.href = `${baseRoute}/${group.id}`}
+                      } ${group.isArchived || group.isGloballyArchived ? "cursor-default opacity-80" : "cursor-pointer group/card"}`}
+                      onClick={() => {
+                        if (group.isArchived || group.isGloballyArchived) return;
+                        window.location.href = `${baseRoute}/${group.id}`;
+                      }}
                     >
                       <div className="w-1.5 bg-gradient-to-b from-purple-600 to-purple-800 shrink-0 hidden md:block" />
                       <div className="h-1.5 w-full bg-gradient-to-r from-purple-600 to-purple-800 shrink-0 md:hidden block" />
@@ -386,10 +389,13 @@ export function GroupListView({ baseRoute = "/groups", apiQuery = "" }: { baseRo
                 return (
                   <div
                     key={group.id}
-                    className={`rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden animate-fade-in-up cursor-pointer group/card flex flex-col relative ${
+                    className={`rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden animate-fade-in-up flex flex-col relative ${
                       group.isCollaborator ? "border-2 border-[var(--primary)] bg-[var(--primary-lightest)]" : "border border-gray-200"
-                    }`}
-                    onClick={() => window.location.href = `${baseRoute}/${group.id}`}
+                    } ${group.isArchived || group.isGloballyArchived ? "cursor-default opacity-80" : "cursor-pointer group/card"}`}
+                    onClick={() => {
+                      if (group.isArchived || group.isGloballyArchived) return;
+                      window.location.href = `${baseRoute}/${group.id}`;
+                    }}
                   >
                     <div className="h-1.5 w-full bg-gradient-to-r from-purple-600 to-purple-800 absolute top-0 left-0" />
                     {/* Top Section */}
