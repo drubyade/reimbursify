@@ -19,7 +19,7 @@ export default function MessagesPage() {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: syncGroups, loading } = useDataSync<any>({
+  const { data: syncGroups, loading } = useDataSync<{ groups: Group[] }>({
     url: "/api/groups",
     cacheFetcher: async () => {
       const cached = await getCachedGroups();

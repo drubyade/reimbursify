@@ -21,7 +21,6 @@ export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [paymentCards, setPaymentCards] = useState<PaymentCard[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -37,7 +36,7 @@ export default function ProfilePage() {
     }
   }, [status, router]);
 
-  const { data: syncCards, loading } = useDataSync<any>({
+  const { data: syncCards, loading } = useDataSync<{ cards: PaymentCard[] }>({
     url: "/api/profile/payment-cards",
     cacheFetcher: async () => {
       const cached = await getCachedApiResponse("/api/profile/payment-cards");
@@ -99,7 +98,7 @@ export default function ProfilePage() {
   };
 
 
-  if (loading) {
+  if (loading && !syncCards) {
     return <div style={{ padding: "2rem", textAlign: "center" }}>Loading...</div>;
   }
 
