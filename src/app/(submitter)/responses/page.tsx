@@ -15,6 +15,8 @@ interface Submission {
   reviewNotes?: string;
   template?: { id: string; title: string; version: number; templateSchema?: string };
   trip?: { id: string; title: string; expenses?: any[] };
+  attestations?: any[];
+  signatures?: string;
 }
 
 export default function MyResponsesPage() {
@@ -343,6 +345,32 @@ export default function MyResponsesPage() {
                                   );
                                 }
                                 
+                                if (field.type === "signature_authority") {
+                                  let isApproved = false;
+                                  if (sub.attestations) {
+                                    isApproved = sub.attestations.some((a: any) => a.fieldId === field.id);
+                                  } else if (sub.signatures) {
+                                    try {
+                                      const sigs = JSON.parse(sub.signatures);
+                                      if (sigs[field.id] === true) isApproved = true;
+                                    } catch(e) {}
+                                  }
+                                  return (
+                                    <div key={field.id} style={{ padding: "0.75rem", background: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0" }}>
+                                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>
+                                        {field.label || "Signature"}
+                                      </div>
+                                      <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>
+                                        {isApproved ? (
+                                          <span style={{ color: "#16a34a" }}>APPROVED</span>
+                                        ) : (
+                                          <span style={{ color: "var(--text-primary)" }}>—</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
                                 return (
                                   <div key={field.id} style={{ padding: "0.75rem", background: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0" }}>
                                     <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>
