@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedApiResponse, cacheApiResponse } from "@/lib/offline-db";
 import { Plane, Calendar, CheckCircle2, DollarSign, FileCheck, Clock, PieChart, BarChart, Star } from "lucide-react";
 
 interface DashboardStats {
@@ -34,85 +36,87 @@ export default function AnalyticsPage() {
     }
   }, [status, router]);
 
+  const fetchStatsData = async () => {
+    // Fetch profile
+    const profileRes = await fetch("/api/profile", { headers: { "Cache-Control": "no-cache" } });
+    const profileData = await profileRes.json();
+
+    // Fetch trips
+    const tripsRes = await fetch("/api/trips?archived=false", { headers: { "Cache-Control": "no-cache" } });
+    if (!tripsRes.ok) throw new Error("Failed to fetch trips");
+    const tripsData = await tripsRes.json();
+    
+    return { profile: profileData.user, trips: tripsData.trips || [] };
+  };
+
+  const { data: syncData, loading: syncLoading } = useDataSync<any>({
+    fetcher: fetchStatsData,
+    cacheFetcher: async () => {
+      const cached = await getCachedApiResponse("/dashboard-data");
+      return cached ? cached : null;
+    },
+    cacheUpdater: async (data) => {
+      if (data) await cacheApiResponse("/dashboard-data", data);
+    },
+    syncKey: "dashboard-stats",
+  });
+
   useEffect(() => {
-    if (!session?.user?.id) return;
-
-    const fetchStats = async () => {
-      try {
-        // Fetch profile
-        fetch("/api/profile", { headers: { "Cache-Control": "no-cache" } })
-          .then(res => res.json())
-          .then(data => {
-            if (data.user) {
-              setProfile(data.user);
-              if (!editingProfile) {
-                setProfileForm({
-                  name: data.user.name || "",
-                  department: data.user.department || "",
-                  designation: data.user.designation || "",
-                });
-              }
-            }
-          })
-          .catch(console.error);
-
-        // Fetch all trips to calculate stats
-        const tripsResponse = await fetch("/api/trips?archived=false", { headers: { "Cache-Control": "no-cache" } });
-        if (!tripsResponse.ok) throw new Error("Failed to fetch trips");
-
-        const tripsData = await tripsResponse.json();
-        const trips = tripsData.trips || [];
-
-        // Calculate statistics
-        const completedTrips = trips.filter((t: any) => t.isCompleted).length;
-        const ongoingTrips = trips.filter((t: any) => !t.isCompleted).length;
-
-        let totalExpenses = 0;
-        let totalAmount = 0;
-        const categoryBreakdown: { [key: string]: { amount: number; count: number } } = {};
-
-        trips.forEach((trip: any) => {
-          if (trip.expenses) {
-            trip.expenses.forEach((exp: any) => {
-              totalExpenses++;
-              totalAmount += exp.amount;
-
-              if (!categoryBreakdown[exp.category]) {
-                categoryBreakdown[exp.category] = { amount: 0, count: 0 };
-              }
-              categoryBreakdown[exp.category].amount += exp.amount;
-              categoryBreakdown[exp.category].count++;
-            });
-          }
+    if (!syncData) return;
+    try {
+      const { profile: userProfile, trips } = syncData;
+      setProfile(userProfile);
+      if (!editingProfile && userProfile) {
+        setProfileForm({
+          name: userProfile.name || "",
+          department: userProfile.department || "",
+          designation: userProfile.designation || "",
         });
-
-        setStats({
-          totalTrips: trips.length,
-          completedTrips,
-          ongoingTrips,
-          totalExpenses,
-          totalAmount,
-          approvedAmount: totalAmount * 0.8, // Mock: 80% approved
-          pendingAmount: totalAmount * 0.2, // Mock: 20% pending
-          categoryBreakdown: Object.entries(categoryBreakdown).map(([category, data]) => ({
-            category,
-            amount: data.amount,
-            count: data.count,
-          })),
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load analytics");
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchStats();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchStats();
-    }, 2000);
-    return () => clearInterval(id);
-  }, [session?.user?.id]);
+      // Calculate statistics
+      const completedTrips = trips.filter((t: any) => t.isCompleted).length;
+      const ongoingTrips = trips.filter((t: any) => !t.isCompleted).length;
+
+      let totalExpenses = 0;
+      let totalAmount = 0;
+      const categoryBreakdown: { [key: string]: { amount: number; count: number } } = {};
+
+      trips.forEach((trip: any) => {
+        if (trip.expenses) {
+          trip.expenses.forEach((exp: any) => {
+            totalExpenses++;
+            totalAmount += exp.amount;
+
+            if (!categoryBreakdown[exp.category]) {
+              categoryBreakdown[exp.category] = { amount: 0, count: 0 };
+            }
+            categoryBreakdown[exp.category].amount += exp.amount;
+            categoryBreakdown[exp.category].count++;
+          });
+        }
+      });
+
+      setStats({
+        totalTrips: trips.length,
+        completedTrips,
+        ongoingTrips,
+        totalExpenses,
+        totalAmount,
+        approvedAmount: totalAmount * 0.8, // Mock: 80% approved
+        pendingAmount: totalAmount * 0.2, // Mock: 20% pending
+        categoryBreakdown: Object.entries(categoryBreakdown).map(([category, data]: [string, any]) => ({
+          category,
+          amount: data.amount,
+          count: data.count,
+        })),
+      });
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load analytics");
+      setLoading(false);
+    }
+  }, [syncData]);
 
   const handleSaveProfile = async () => {
     try {

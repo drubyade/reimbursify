@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedGroups, cacheGroups } from "@/lib/offline-db";
 import { MessageSquare, Users, ChevronRight, Search, Inbox } from "lucide-react";
 
 interface Group {
@@ -14,33 +16,21 @@ interface Group {
 
 export default function MessagesPage() {
   const router = useRouter();
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: syncGroups, loading } = useDataSync<any>({
+    url: "/api/groups",
+    cacheFetcher: async () => {
+      const cached = await getCachedGroups();
+      return cached.length > 0 ? { groups: cached } : null;
+    },
+    cacheUpdater: async (data) => {
+      if (data?.groups) await cacheGroups(data.groups);
+    },
+  });
 
-  useEffect(() => {
-    fetchGroups();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchGroups();
-    }, 2000);
-    return () => clearInterval(id);
-  }, []);
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch("/api/groups", { headers: { "Cache-Control": "no-cache" } });
-      if (res.ok) {
-        const data = await res.json();
-        setGroups(data.groups || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch groups", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const groups = syncGroups?.groups || [];
 
   const filteredGroups = groups.filter((g) =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -129,7 +119,7 @@ export default function MessagesPage() {
         </div>
 
       {/* Content */}
-      {loading ? (
+      {loading && !syncGroups ? (
         <div style={{
           display: "flex",
           flexDirection: "column",

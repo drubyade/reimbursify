@@ -184,6 +184,15 @@ export const getCachedMessagesByGroup = (groupId: string) => getAllByIndex(STORE
 export const cacheSingleMessage    = (msg: any)        => put(STORES.MESSAGES, { ...msg, _cachedAt: Date.now() });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GENERIC API CACHE
+// ─────────────────────────────────────────────────────────────────────────────
+export const cacheApiResponse      = (url: string, data: any) => put(STORES.API_CACHE, { url, data, _cachedAt: Date.now() });
+export const getCachedApiResponse  = async (url: string) => {
+  const cached = await getOne(STORES.API_CACHE, url);
+  return cached ? cached.data : null;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PURGE EXPIRED (15 days) — call on app startup
 // ─────────────────────────────────────────────────────────────────────────────
 export async function purgeExpired(): Promise<void> {

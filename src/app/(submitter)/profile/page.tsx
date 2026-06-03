@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCachedApiResponse, cacheApiResponse } from "@/lib/offline-db";
 import { CreditCard } from "lucide-react";
 
 
@@ -35,29 +37,22 @@ export default function ProfilePage() {
     }
   }, [status, router]);
 
+  const { data: syncCards, loading } = useDataSync<any>({
+    url: "/api/profile/payment-cards",
+    cacheFetcher: async () => {
+      const cached = await getCachedApiResponse("/api/profile/payment-cards");
+      return cached ? { cards: cached.cards || [] } : null;
+    },
+    cacheUpdater: async (data) => {
+      if (data) await cacheApiResponse("/api/profile/payment-cards", data);
+    },
+  });
+
   useEffect(() => {
-    if (!session?.user?.id) return;
-
-    const fetchPaymentCards = async () => {
-      try {
-        const cardsResponse = await fetch("/api/profile/payment-cards", { headers: { "Cache-Control": "no-cache" } });
-        if (cardsResponse.ok) {
-          const cardsData = await cardsResponse.json();
-          setPaymentCards(cardsData.cards || []);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load payment cards");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPaymentCards();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchPaymentCards();
-    }, 2000);
-    return () => clearInterval(id);
-  }, [session?.user?.id]);
+    if (syncCards?.cards) {
+      setPaymentCards(syncCards.cards);
+    }
+  }, [syncCards]);
 
 
   const handleAddCard = async () => {
