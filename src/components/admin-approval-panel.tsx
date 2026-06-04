@@ -5,6 +5,7 @@ import { Download, CheckCircle, AlertCircle, Clock, ChevronDown, ChevronUp, Layo
 import { useDataSync } from "@/hooks/useDataSync";
 import { getCachedSubmissions, cacheSubmissions } from "@/lib/offline-db";
 import { FormInterface } from "./form-interface";
+import { useSession } from "next-auth/react";
 
 interface Submission {
   id: string;
@@ -16,6 +17,7 @@ interface Submission {
   createdAt: string;
   signatures?: string;
   attestations?: any[];
+  group?: { createdById: string };
 }
 
 interface Expense {
@@ -28,6 +30,7 @@ interface Expense {
 }
 
 export const AdminApprovalPanel: React.FC = () => {
+  const { data: session } = useSession();
   const [expenses, setExpenses] = useState<Record<string, Expense[]>>({});
   const [filter, setFilterState] = useState<"all" | "pending" | "reviewed" | "needs_attestation">("all");
   const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null);
@@ -694,7 +697,7 @@ export const AdminApprovalPanel: React.FC = () => {
                     )}
 
                     {/* Review Action */}
-                    {submission.status === "SUBMITTED" && (
+                    {submission.status === "SUBMITTED" && session?.user && fullSubmissions[submission.id]?.group?.createdById === (session.user as any).id && (
                       <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid #e5e7eb" }}>
                         <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "0.75rem" }}>
                           Review Notes (Optional)

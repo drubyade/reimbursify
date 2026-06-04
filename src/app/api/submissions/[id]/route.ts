@@ -33,6 +33,7 @@ export async function GET(req: NextRequest, { params }: Params) {
             },
           },
         },
+        group: { select: { createdById: true } },
       },
     });
 
@@ -85,13 +86,15 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     let displayStatus = submission.status;
 
-    if (isOwner) {
-      // Submitter can't know when reimbursifier reviewed it
+    const isGroupCreator = submission.group?.createdById === session.user.id;
+
+    if (isOwner && !isGroupCreator && !isAdmin) {
+      // Pure submitter can't know when reimbursifier reviewed it
       if (submission.status === "REVIEWED") {
         displayStatus = "SUBMITTED";
       }
-    } else if (isAdmin) {
-      // Reimbursifier can't know which forms are settled
+    } else if ((isGroupCreator || isAdmin || isCollaborator) && !isOwner) {
+      // Reimbursifier/Collaborator can't know which forms are settled
       if (submission.status === "SETTLED") {
         displayStatus = "REVIEWED";
       }
@@ -142,11 +145,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const isOwner = submission.userId === session.user.id;
     const isAdmin = user?.role === "ADMINISTRATOR";
 
+    // Fetch group to check creator
+    const group = await prisma.group.findUnique({
+      where: { id: submission.groupId },
+      select: { createdById: true },
+    });
+    const isGroupCreator = group?.createdById === session.user.id;
+
     const isCollaborator = await prisma.groupCollaborator.findFirst({
       where: { groupId: submission.groupId, userId: session.user.id },
     });
 
-    if (!isOwner && !isAdmin && !isCollaborator) {
+    if (!isOwner && !isAdmin && !isGroupCreator && !isCollaborator) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -161,6 +171,40 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
+    // ─── ROLE-BASED STATUS TRANSITION ENFORCEMENT ────────────────────
+    if (status) {
+      const requestedStatus = status.toUpperCase();
+      const currentStatus = submission.status;
+
+      // DRAFT → SUBMITTED: owner only
+      if (currentStatus === "DRAFT" && requestedStatus === "SUBMITTED") {
+        if (!isOwner) {
+          return NextResponse.json({ error: "Only the submitter can submit a draft" }, { status: 403 });
+        }
+      }
+      // SUBMITTED → REVIEWED: group creator or admin only
+      else if (currentStatus === "SUBMITTED" && requestedStatus === "REVIEWED") {
+        if (!isGroupCreator && !isAdmin) {
+          return NextResponse.json({ error: "Only the group creator or administrator can mark as reviewed" }, { status: 403 });
+        }
+      }
+      // REVIEWED → SETTLED: owner only (submitter confirms settlement)
+      else if (currentStatus === "REVIEWED" && requestedStatus === "SETTLED") {
+        if (!isOwner) {
+          return NextResponse.json({ error: "Only the submitter can settle their own form" }, { status: 403 });
+        }
+      }
+      // DRAFT → DRAFT or same-status updates are fine (e.g., saving draft data)
+      else if (currentStatus === requestedStatus) {
+        // no-op on status, allow other fields to update
+      }
+      // All other transitions are invalid
+      else {
+        return NextResponse.json({ error: `Status transition ${currentStatus} → ${requestedStatus} is not allowed` }, { status: 403 });
+      }
+    }
+
+    // ─── BUILD UPDATE DATA ───────────────────────────────────────────
     let finalFormData = undefined;
     if (formData !== undefined) {
       let parsed = typeof formData === "string" ? JSON.parse(formData) : { ...formData };
@@ -174,10 +218,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       finalFormData = JSON.stringify(parsed);
     }
 
+    // Update submissionDate when transitioning DRAFT → SUBMITTED
+    const isSubmitting = status && status.toUpperCase() === "SUBMITTED" && submission.status === "DRAFT";
+
     const updated = await prisma.submission.update({
       where: { id },
       data: {
         ...(status && { status: status.toUpperCase() }),
+        ...(isSubmitting && { submissionDate: new Date() }),
         ...(reviewNotes !== undefined && { reviewNotes }),
         ...(signatures !== undefined && { signatures: JSON.stringify(signatures) }),
         ...(finalFormData !== undefined && { formData: finalFormData }),
@@ -192,9 +240,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     let displayStatus = updated.status;
 
-    if (isOwner) {
+    if (isOwner && !isGroupCreator && !isAdmin) {
+      // Pure submitter: can't see REVIEWED status
       if (updated.status === "REVIEWED") displayStatus = "SUBMITTED";
-    } else if (isAdmin) {
+    } else if ((isGroupCreator || isAdmin) && !isOwner) {
+      // Group creator / admin viewing someone else's form: can't see SETTLED
       if (updated.status === "SETTLED") displayStatus = "REVIEWED";
     }
 

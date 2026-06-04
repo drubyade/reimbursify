@@ -148,6 +148,9 @@ export async function GET(req: NextRequest) {
         user: {
           select: { id: true, email: true, name: true },
         },
+        group: {
+          select: { createdById: true },
+        },
         trip: {
           select: { 
             id: true, 
@@ -166,16 +169,42 @@ export async function GET(req: NextRequest) {
     // Filter submissions and obscure statuses based on roles
     const collabGroupIds = new Set(userCollaborations.map(c => c.groupId));
     const filtered = submissions.filter((s) => {
-      const isAdminOrCollab = user.role === "ADMINISTRATOR" || collabGroupIds.has(s.groupId);
-      
-      if (isAdminOrCollab) {
-        // Reimbursifier/Collaborator can see all submissions in their institute/group, EXCEPT drafts of others
-        if (s.status === "DRAFT" && s.userId !== session.user?.id) {
+      const isOwner = s.userId === session.user?.id;
+      const isGroupCreator = s.group?.createdById === session.user?.id;
+      const isAdmin = user.role === "ADMINISTRATOR";
+      const isCollaborator = collabGroupIds.has(s.groupId);
+
+      // Owner can see their own forms (drafts and submitted)
+      if (isOwner) return true;
+
+      // If they are not owner, they can't see drafts
+      if (s.status === "DRAFT") return false;
+
+      // Group creator or Admin can see all non-drafts in the group
+      if (isGroupCreator || isAdmin) return true;
+
+      // If they are just a collaborator (not owner, not creator, not admin)
+      if (isCollaborator) {
+        // ONLY see the form if they have a signature assigned
+        let schema: any;
+        try {
+          schema = typeof s.template.templateSchema === "string"
+            ? JSON.parse(s.template.templateSchema)
+            : s.template.templateSchema;
+        } catch {
           return false;
         }
-        return true;
+
+        const hasSignatureField = (schema.sections || []).some((section: any) =>
+          (section.fields || []).some(
+            (field: any) => field.type === "signature_authority" && field.collaboratorId === session.user!.id
+          )
+        );
+
+        return hasSignatureField;
       }
-      return s.userId === session.user?.id;
+
+      return false;
     }).map((s) => {
       let displayStatus = s.status;
 
